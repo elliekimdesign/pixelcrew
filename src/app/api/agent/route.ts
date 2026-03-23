@@ -1,5 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { NextRequest, NextResponse } from "next/server";
+export const runtime = "nodejs";
+
+import { NextRequest } from "next/server";
+import { streamFromClaude, SSE_HEADERS } from "@/lib/claudeCli";
 
 // Each agent has a unique personality and system prompt
 const agentPrompts: Record<string, string> = {
@@ -94,105 +96,23 @@ Respond in 2-3 short sentences. Be vigilant and protective.`,
 export async function POST(req: NextRequest) {
   const { task, agent, context, subtask } = await req.json();
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey || apiKey === "your-api-key-here") {
-    return mockAgentResponse(agent, task, subtask);
-  }
+  const systemPrompt = agentPrompts[agent] || agentPrompts.mayor;
 
-  try {
-    const client = new Anthropic({ apiKey });
-    const systemPrompt = agentPrompts[agent] || agentPrompts.mayor;
-
-    // Build context from previous agent outputs
-    const contextText = context && context.length > 0
+  // Build context from previous agent outputs
+  const contextText =
+    context && context.length > 0
       ? `\n\nPrevious agent outputs for this task:\n${context.map((c: { agent: string; text: string }) => `${c.agent}: ${c.text}`).join("\n")}`
       : "";
 
-    // If a subtask is provided, give the agent both the overall task and their specific assignment
-    const taskContent = subtask
-      ? `Overall task: ${task}\nYour specific assignment: ${subtask}${contextText}`
-      : `Task: ${task}${contextText}`;
+  // If a subtask is provided, give the agent both the overall task and their specific assignment
+  const userMessage = subtask
+    ? `Overall task: ${task}\nYour specific assignment: ${subtask}${contextText}`
+    : `Task: ${task}${contextText}`;
 
-    const stream = await client.messages.stream({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 800,
-      system: systemPrompt,
-      messages: [
-        {
-          role: "user",
-          content: taskContent,
-        },
-      ],
-    });
-
-    const encoder = new TextEncoder();
-    const readable = new ReadableStream({
-      async start(controller) {
-        for await (const event of stream) {
-          if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta"
-          ) {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`)
-            );
-          }
-        }
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-        controller.close();
-      },
-    });
-
-    return new Response(readable, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
-    });
-  } catch (error) {
-    console.error(`Agent ${agent} error:`, error);
-    return NextResponse.json(
-      { error: `Agent ${agent} failed` },
-      { status: 500 }
-    );
-  }
-}
-
-// Mock responses when no API key
-function mockAgentResponse(agent: string, task: string, subtask?: string) {
-  const mocks: Record<string, string> = {
-    mayor: `Alright team, here's the assignment for "${task}":\n• Planner, break this down into steps\n• Researcher, scout the best approach\n• Coder, get ready to build\n• Let's get it done!`,
-    planner: `Here's my plan for "${task}": Researcher and Coder will work in parallel — research gathers insights while code gets built. Then Reviewer checks everything.\n\n---SECTIONS_START---\n[{"agent":"researcher","subtask":"Research the best approach and gather key insights for: ${task}","group":1},{"agent":"coder","subtask":"Implement the core solution for: ${task}","group":1}]\n---SECTIONS_END---`,
-    researcher: `Research complete for "${subtask || task}":\n• Analyzed the requirements thoroughly\n• Found 3 viable approaches, recommending approach #2\n• Key insight: keep it simple, iterate fast\n• Passing findings to the implementation team`,
-    coder: `Implementation done for "${subtask || task}":\n• Built the core functionality as planned\n• Used clean, modular structure\n• All main features working\n• Ready for review`,
-    fixer: `Fix complete for "${subtask || task}":\n• Diagnosed the root cause\n• Applied the patch\n• Everything is working end-to-end\n• Ready for deployment`,
-    reviewer: `Review complete:\n• Quality: Good\n• Code structure is clean and readable\n• One suggestion: add error handling for edge cases\n• Approved with minor notes`,
-    monitor: `Health check: All systems nominal. No issues detected. Team is performing well.`,
-  };
-
-  const encoder = new TextEncoder();
-  const text = mocks[agent] || mocks.mayor;
-  const words = text.split(" ");
-
-  const readable = new ReadableStream({
-    async start(controller) {
-      for (const word of words) {
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ text: word + " " })}\n\n`)
-        );
-        await new Promise((r) => setTimeout(r, 35));
-      }
-      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-      controller.close();
-    },
+  const readable = streamFromClaude({
+    systemPrompt,
+    userMessage,
   });
 
-  return new Response(readable, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
+  return new Response(readable, { headers: SSE_HEADERS });
 }

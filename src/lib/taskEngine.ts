@@ -2,6 +2,14 @@ import { Agent, Task, LogEntry, CharacterName, PlannerSection, PipelineGroup, Ag
 
 let taskCounter = 0;
 
+export function getTaskCounter(): number {
+  return taskCounter;
+}
+
+export function setTaskCounter(n: number): void {
+  taskCounter = n;
+}
+
 // Pick which agents to assign based on the task
 function pickAgents(message: string, allAgents: Agent[]): CharacterName[] {
   const lower = message.toLowerCase();

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Agent, Task, LogEntry, CharacterName } from "@/lib/types";
 import { initialAgents } from "@/lib/mockData";
-import { createTask, getAgentPipeline, callAgent, parsePlannerSections, buildParallelPipeline } from "@/lib/taskEngine";
+import { createTask, getAgentPipeline, callAgent, parsePlannerSections, buildParallelPipeline, getTaskCounter, setTaskCounter } from "@/lib/taskEngine";
 import { StreamingEntry } from "@/components/TaskDetail";
 import CommandInput from "@/components/CommandInput";
 import AgentSidebar from "@/components/AgentStrip";
@@ -17,6 +17,59 @@ export default function Home() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   // Track multiple concurrent streaming agents (keyed by agent name)
   const [streamingEntries, setStreamingEntries] = useState<Record<string, StreamingEntry>>({});
+
+  const [loaded, setLoaded] = useState(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load state on mount
+  useEffect(() => {
+    fetch("/api/state")
+      .then((r) => r.json())
+      .then((state) => {
+        if (state && state.tasks) {
+          // Restore any running tasks to "stuck" since the pipeline was interrupted
+          const restoredTasks = state.tasks.map((t: Task) =>
+            t.status === "running" ? { ...t, status: "stuck" as const } : t
+          );
+          setTasks(restoredTasks);
+          setSelectedTaskId(state.selectedTaskId || null);
+
+          // Restore agents — release any that were "working" back to idle
+          if (state.agents) {
+            const restoredAgents = state.agents.map((a: Agent) =>
+              a.state === "working"
+                ? { ...a, state: "idle" as const, taskId: undefined, taskLabel: undefined, progress: undefined }
+                : a
+            );
+            setAgents(restoredAgents);
+          }
+
+          if (state.taskCounter) {
+            setTaskCounter(state.taskCounter);
+          }
+        }
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  // Save state when tasks, agents, or selection change (debounced)
+  useEffect(() => {
+    if (!loaded) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      fetch("/api/state", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agents,
+          tasks,
+          selectedTaskId,
+          taskCounter: getTaskCounter(),
+        }),
+      }).catch(() => {});
+    }, 500);
+  }, [agents, tasks, selectedTaskId, loaded]);
 
   const selectedTask = tasks.find((t) => t.id === selectedTaskId) || null;
   const workingAgents = agents.filter((a) => a.state === "working").length;
@@ -277,6 +330,13 @@ export default function Home() {
     setAgents(updatedAgents);
     setTasks((prev) => [task, ...prev]);
     setSelectedTaskId(task.id);
+
+    // Create sandbox directory for this task
+    fetch("/api/sandbox", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taskId: task.id }),
+    }).catch(() => {});
 
     // Start the agent pipeline (runs async, doesn't block)
     runPipeline(task, message);
