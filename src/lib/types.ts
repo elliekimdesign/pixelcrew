@@ -12,6 +12,15 @@ export interface Agent {
   progress?: number;
 }
 
+export interface CurrentStep {
+  index: number;
+  total: number;
+  agent: string; // single agent name or combined like "Researcher + Coder"
+  label: string;
+  progressBefore: number;
+  progressAfter: number;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -21,6 +30,7 @@ export interface Task {
   log: LogEntry[]; // conversation / activity log
   createdAt: number;
   runCount: number; // how many times the pipeline has run
+  currentStep?: CurrentStep; // transient: tracks active pipeline step (not persisted)
 }
 
 export interface LogEntry {

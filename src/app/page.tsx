@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Agent, Task, LogEntry, CharacterName } from "@/lib/types";
+import { Agent, Task, LogEntry, CharacterName, CurrentStep } from "@/lib/types";
 import { initialAgents } from "@/lib/mockData";
 import { createTask, getAgentPipeline, callAgent, parsePlannerSections, buildParallelPipeline, getTaskCounter, setTaskCounter } from "@/lib/taskEngine";
 import { StreamingEntry } from "@/components/TaskDetail";
@@ -211,6 +211,13 @@ export default function Home() {
       }));
   }, []);
 
+  // Helper: update currentStep on a task
+  const setCurrentStep = useCallback((taskId: string, step: CurrentStep | undefined) => {
+    setTasks((prev) =>
+      prev.map((t) => t.id === taskId ? { ...t, currentStep: step } : t)
+    );
+  }, []);
+
   // Run the agent pipeline for a task
   const runPipeline = useCallback(async (
     task: Task,
@@ -221,20 +228,32 @@ export default function Home() {
 
     // Step 1: Run Mayor sequentially
     const mayorStep = { agent: "mayor" as CharacterName, progressAfter: 10, label: "Coordinating..." };
-    if (task.agents.includes("mayor")) {
+    const hasMayor = task.agents.includes("mayor");
+    const hasPlanner = task.agents.includes("planner");
+
+    // We'll compute totalSteps after we know the pipeline shape.
+    // For now, start with mayor + planner, then add remaining steps.
+    let stepIndex = 0;
+
+    if (hasMayor) {
+      // We don't know total yet, so set a preliminary value (updated below)
+      setCurrentStep(task.id, { index: 0, total: 2, agent: "Mayor", label: "Coordinating...", progressBefore: 0, progressAfter: 10 });
       const result = await runSingleStep(task.id, mayorStep, taskMessage, context);
       if (result) context.push(result);
+      stepIndex = 1;
     }
 
     // Step 2: Run Planner sequentially, capture output
     let plannerOutput = "";
     const plannerStep = { agent: "planner" as CharacterName, progressAfter: 20, label: "Planning..." };
-    if (task.agents.includes("planner")) {
+    if (hasPlanner) {
+      setCurrentStep(task.id, { index: stepIndex, total: stepIndex + 1, agent: "Planner", label: "Planning...", progressBefore: hasMayor ? 10 : 0, progressAfter: 20 });
       const result = await runSingleStep(task.id, plannerStep, taskMessage, context);
       if (result) {
         context.push(result);
         plannerOutput = result.text;
       }
+      stepIndex++;
     }
 
     // Step 3: Try to parse structured sections from Planner
@@ -243,15 +262,38 @@ export default function Home() {
     if (sections) {
       // Parallel path: use structured sections
       const pipeline = buildParallelPipeline(task, sections);
-      // Skip Mayor and Planner groups (already ran), process remaining groups
       const remainingGroups = pipeline.filter((g) => {
         const agents = g.steps.map((s) => s.agent);
         return !agents.includes("mayor") && !agents.includes("planner");
       });
 
+      // Count total steps: mayor + planner + remaining groups
+      const totalSteps = stepIndex + remainingGroups.length;
+
       for (const group of remainingGroups) {
+        // Build step label for this group
+        const groupLabel = group.steps.length > 1
+          ? group.steps.map((s) => s.agent.charAt(0).toUpperCase() + s.agent.slice(1)).join(" + ") + " (parallel)"
+          : group.steps[0].label;
+        const groupAgentName = group.steps.length > 1
+          ? group.steps.map((s) => s.agent.charAt(0).toUpperCase() + s.agent.slice(1)).join(" + ")
+          : group.steps[0].agent.charAt(0).toUpperCase() + group.steps[0].agent.slice(1);
+
+        // Find the progress value of the previous completed step
+        const progressBefore = stepIndex > 0
+          ? (stepIndex === 1 && hasMayor && !hasPlanner ? 10 : stepIndex === 1 && !hasMayor && hasPlanner ? 20 : 20)
+          : 0;
+
+        setCurrentStep(task.id, {
+          index: stepIndex,
+          total: totalSteps,
+          agent: groupAgentName,
+          label: groupLabel,
+          progressBefore: task.progress || progressBefore,
+          progressAfter: group.progressAfter,
+        });
+
         if (group.type === "parallel" && group.steps.length > 1) {
-          // Set all agents in this group to "working"
           setAgents((prev) =>
             prev.map((a) => {
               const step = group.steps.find((s) => s.agent === a.character);
@@ -262,42 +304,53 @@ export default function Home() {
             })
           );
 
-          // Run all steps in parallel with a shared group ID
           const groupId = `parallel-${Date.now()}`;
           const results = await Promise.allSettled(
             group.steps.map((step) => runSingleStep(task.id, step, taskMessage, [...context], groupId))
           );
 
-          // Collect successful results into context
           for (const result of results) {
             if (result.status === "fulfilled" && result.value) {
               context.push(result.value);
             }
           }
 
-          // Update task progress to group level
           setTasks((prev) =>
             prev.map((t) => t.id === task.id ? { ...t, progress: group.progressAfter } : t)
           );
         } else {
-          // Sequential group (single agent or reviewer)
           for (const step of group.steps) {
             const result = await runSingleStep(task.id, step, taskMessage, context);
             if (result) context.push(result);
           }
         }
+
+        stepIndex++;
       }
     } else {
       // Fallback: sequential pipeline (old behavior)
       const fallbackPipeline = getAgentPipeline(task);
-      // Skip mayor and planner (already ran)
       const remaining = fallbackPipeline.filter(
         (s) => s.agent !== "mayor" && s.agent !== "planner"
       );
 
+      const totalSteps = stepIndex + remaining.length;
+      let prevProgress = hasPlanner ? 20 : hasMayor ? 10 : 0;
+
       for (const step of remaining) {
+        setCurrentStep(task.id, {
+          index: stepIndex,
+          total: totalSteps,
+          agent: step.agent.charAt(0).toUpperCase() + step.agent.slice(1),
+          label: step.label,
+          progressBefore: prevProgress,
+          progressAfter: step.progressAfter,
+        });
+
         const result = await runSingleStep(task.id, step, taskMessage, context);
         if (result) context.push(result);
+        prevProgress = step.progressAfter;
+        stepIndex++;
       }
     }
 
@@ -312,7 +365,7 @@ export default function Home() {
     setTasks((prev) =>
       prev.map((t) => {
         if (t.id !== task.id) return t;
-        return { ...t, status: "done", progress: 100, log: [...t.log, doneLog] };
+        return { ...t, status: "done", progress: 100, currentStep: undefined, log: [...t.log, doneLog] };
       })
     );
 
@@ -322,7 +375,7 @@ export default function Home() {
         return { ...a, state: "idle" as const, taskId: undefined, taskLabel: undefined, progress: undefined };
       })
     );
-  }, [runSingleStep]);
+  }, [runSingleStep, setCurrentStep]);
 
   const handleNewTask = useCallback((message: string) => {
     const { task, updatedAgents } = createTask(message, agents);

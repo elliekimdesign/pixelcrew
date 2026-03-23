@@ -64,9 +64,16 @@ export default function AgentSidebar({ agents }: Props) {
                       {agent.title}
                     </span>
                   </div>
-                  <span className={`text-[11px] font-semibold ${state.color} leading-none mt-1.5 inline-block`}>
-                    {state.text}
-                  </span>
+                  <div className="flex items-center gap-1 mt-1.5">
+                    <span className={`text-[11px] font-semibold ${state.color} leading-none inline-block`}>
+                      {state.text}
+                    </span>
+                    <span className={`inline-flex gap-[2px] ${agent.state === "working" ? "" : "invisible"}`}>
+                      <span className="typing-dot w-[3px] h-[3px] rounded-full bg-green-500 inline-block" />
+                      <span className="typing-dot w-[3px] h-[3px] rounded-full bg-green-500 inline-block" />
+                      <span className="typing-dot w-[3px] h-[3px] rounded-full bg-green-500 inline-block" />
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -82,7 +89,7 @@ export default function AgentSidebar({ agents }: Props) {
                 <div className="mt-2 pl-[52px]">
                   <div className="px-bar" style={{ height: 6 }}>
                     <div
-                      className="px-bar-fill bg-green-400"
+                      className={`px-bar-fill bg-green-400 ${agent.state === "working" ? "loading-bar-subtle" : ""}`}
                       style={{ width: `${agent.progress}%` }}
                     />
                   </div>

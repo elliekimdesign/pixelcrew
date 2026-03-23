@@ -45,8 +45,8 @@ export default function TaskCard({ task, isSelected, onClick }: Props) {
       {/* Progress bar */}
       <div className="px-bar mb-2.5">
         <div
-          className={`px-bar-fill ${barColor}`}
-          style={{ width: `${task.progress}%` }}
+          className={`px-bar-fill ${barColor} ${task.status === "running" ? "loading-bar-subtle" : ""}`}
+          style={{ width: `${Math.max(task.progress, task.status === "running" ? 3 : 0)}%` }}
         />
       </div>
 

@@ -180,6 +180,17 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
 
   const renderRows = buildRenderRows(task.log);
 
+  // Compute interpolated progress while streaming
+  const isStreaming = activeEntries.length > 0;
+  const step = task.currentStep;
+  let displayProgress = task.progress;
+  if (isStreaming && step) {
+    const midpoint = step.progressBefore + (step.progressAfter - step.progressBefore) * 0.6;
+    displayProgress = Math.max(task.progress, Math.round(midpoint));
+  }
+  // Ensure at least a sliver of bar is visible when running
+  if (task.status === "running" && displayProgress < 3) displayProgress = 3;
+
   // Split active streaming entries into grouped vs ungrouped
   const groupedStreaming: Record<string, StreamingEntry[]> = {};
   const ungroupedStreaming: StreamingEntry[] = [];
@@ -205,7 +216,7 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
         </div>
         <div className="flex-1 min-w-0">
           <span className="text-[11px] text-[var(--text)] font-pixel truncate block">{task.title}</span>
-          <span className="text-[12px] text-[var(--text-light)]">{task.progress}% complete</span>
+          <span className="text-[12px] text-[var(--text-light)]">{Math.round(displayProgress)}% complete</span>
         </div>
         <span className={`text-[11px] font-semibold px-3 py-1 rounded-md ${
           task.status === "done"
@@ -218,14 +229,28 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
         </span>
       </div>
 
+      {/* Step indicator */}
+      {task.status === "running" && task.currentStep && (
+        <div className="px-5 pt-3 pb-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-pixel text-[var(--text-light)] uppercase">
+              Step {task.currentStep.index + 1}/{task.currentStep.total}
+            </span>
+            <span className="text-[12px] text-[var(--text-mid)]">
+              {task.currentStep.label}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Progress bar */}
-      <div className="px-5 pt-4 pb-2">
+      <div className="px-5 pt-2 pb-2">
         <div className="px-bar">
           <div
             className={`px-bar-fill ${
               task.status === "done" ? "bg-green-400" : task.status === "stuck" ? "bg-red-400" : "bg-cyan-400"
-            }`}
-            style={{ width: `${task.progress}%` }}
+            } ${task.status === "running" ? "loading-bar" : ""}`}
+            style={{ width: `${displayProgress}%` }}
           />
         </div>
       </div>

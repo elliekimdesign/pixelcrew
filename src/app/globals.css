@@ -93,19 +93,30 @@ body {
 
 /* ── Loading bar ── */
 .loading-bar {
-  background: repeating-linear-gradient(
-    90deg,
-    var(--accent) 0px,
-    var(--accent) 5px,
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255,255,255,0.18) 0px,
+    rgba(255,255,255,0.18) 5px,
     transparent 5px,
     transparent 10px
   );
-  background-size: 200% 100%;
+  background-size: 14px 14px;
   animation: scroll-bar 0.6s linear infinite;
+}
+.loading-bar-subtle {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255,255,255,0.14) 0px,
+    rgba(255,255,255,0.14) 3px,
+    transparent 3px,
+    transparent 6px
+  );
+  background-size: 8px 8px;
+  animation: scroll-bar 0.8s linear infinite;
 }
 @keyframes scroll-bar {
   0% { background-position: 0 0; }
-  100% { background-position: -20px 0; }
+  100% { background-position: 14px 14px; }
 }
 
 /* ── Animations ── */
