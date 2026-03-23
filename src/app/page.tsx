@@ -1,0 +1,449 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import { Agent, Task, LogEntry, CharacterName } from "@/lib/types";
+import { initialAgents } from "@/lib/mockData";
+import { createTask, getAgentPipeline, callAgent, parsePlannerSections, buildParallelPipeline } from "@/lib/taskEngine";
+import { StreamingEntry } from "@/components/TaskDetail";
+import CommandInput from "@/components/CommandInput";
+import AgentSidebar from "@/components/AgentStrip";
+import TaskCard from "@/components/TaskCard";
+import TaskDetail from "@/components/TaskDetail";
+import PixelSprite from "@/components/PixelSprite";
+
+export default function Home() {
+  const [agents, setAgents] = useState<Agent[]>(initialAgents);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  // Track multiple concurrent streaming agents (keyed by agent name)
+  const [streamingEntries, setStreamingEntries] = useState<Record<string, StreamingEntry>>({});
+
+  const selectedTask = tasks.find((t) => t.id === selectedTaskId) || null;
+  const workingAgents = agents.filter((a) => a.state === "working").length;
+
+  // Helper: run a single agent step (used by both sequential and parallel paths)
+  const runSingleStep = useCallback(async (
+    taskId: string,
+    step: { agent: CharacterName; progressAfter: number; label: string; subtask?: string },
+    taskMessage: string,
+    context: { agent: string; text: string }[],
+    group?: string,
+  ): Promise<{ agent: string; text: string } | null> => {
+    // Update agent label
+    setAgents((prev) =>
+      prev.map((a) =>
+        a.character === step.agent && a.taskId === taskId
+          ? { ...a, state: "working" as const, taskLabel: step.label, progress: Math.max(a.progress || 0, 10) }
+          : a
+      )
+    );
+
+    // Add "thinking" log entry
+    const thinkingLogId = `log-${Date.now()}-thinking-${step.agent}`;
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (t.id !== taskId) return t;
+        const thinkingLog: LogEntry = {
+          id: thinkingLogId,
+          type: "system",
+          text: `${capitalize(step.agent)} is working...`,
+          timestamp: Date.now(),
+          ...(group ? { group } : {}),
+        };
+        return { ...t, log: [...t.log, thinkingLog] };
+      })
+    );
+
+    // Set up streaming entry for this agent
+    setStreamingEntries((prev) => ({
+      ...prev,
+      [step.agent]: { taskId, text: "", agent: step.agent, ...(group ? { group } : {}) },
+    }));
+
+    try {
+      const fullText = await callAgent(
+        taskMessage,
+        step.agent,
+        context,
+        (text) => {
+          setStreamingEntries((prev) => ({
+            ...prev,
+            [step.agent]: { taskId, text, agent: step.agent, ...(group ? { group } : {}) },
+          }));
+        },
+        step.subtask,
+      );
+
+      // Clear streaming entry for this agent
+      setStreamingEntries((prev) => {
+        const next = { ...prev };
+        delete next[step.agent];
+        return next;
+      });
+
+      // Replace thinking log with actual result
+      const resultLog: LogEntry = {
+        id: `log-${Date.now()}-result-${step.agent}`,
+        type: "agent",
+        character: step.agent,
+        text: fullText,
+        timestamp: Date.now(),
+        ...(group ? { group } : {}),
+      };
+
+      setTasks((prev) =>
+        prev.map((t) => {
+          if (t.id !== taskId) return t;
+          return {
+            ...t,
+            progress: step.progressAfter,
+            log: t.log.filter((l) => l.id !== thinkingLogId).concat(resultLog),
+          };
+        })
+      );
+
+      // Update agent progress
+      setAgents((prev) =>
+        prev.map((a) =>
+          a.character === step.agent && a.taskId === taskId
+            ? { ...a, progress: step.progressAfter, taskLabel: "Done with part" }
+            : a
+        )
+      );
+
+      return { agent: capitalize(step.agent), text: fullText };
+    } catch (error) {
+      // Mark agent as stuck on failure
+      setStreamingEntries((prev) => {
+        const next = { ...prev };
+        delete next[step.agent];
+        return next;
+      });
+
+      setAgents((prev) =>
+        prev.map((a) =>
+          a.character === step.agent && a.taskId === taskId
+            ? { ...a, state: "stuck" as const, taskLabel: "Failed" }
+            : a
+        )
+      );
+
+      setTasks((prev) =>
+        prev.map((t) => {
+          if (t.id !== taskId) return t;
+          return {
+            ...t,
+            log: t.log.filter((l) => l.id !== thinkingLogId).concat({
+              id: `log-${Date.now()}-error-${step.agent}`,
+              type: "system",
+              text: `${capitalize(step.agent)} encountered an error.`,
+              timestamp: Date.now(),
+              ...(group ? { group } : {}),
+            }),
+          };
+        })
+      );
+
+      return null;
+    }
+  }, []);
+
+  // Build context from previous agent log entries
+  const buildPreviousContext = useCallback((task: Task): { agent: string; text: string }[] => {
+    return task.log
+      .filter((entry) => entry.type === "agent" && entry.character)
+      .map((entry) => ({
+        agent: capitalize(entry.character!),
+        text: entry.text,
+      }));
+  }, []);
+
+  // Run the agent pipeline for a task
+  const runPipeline = useCallback(async (
+    task: Task,
+    taskMessage: string,
+    previousContext?: { agent: string; text: string }[],
+  ) => {
+    const context: { agent: string; text: string }[] = previousContext ? [...previousContext] : [];
+
+    // Step 1: Run Mayor sequentially
+    const mayorStep = { agent: "mayor" as CharacterName, progressAfter: 10, label: "Coordinating..." };
+    if (task.agents.includes("mayor")) {
+      const result = await runSingleStep(task.id, mayorStep, taskMessage, context);
+      if (result) context.push(result);
+    }
+
+    // Step 2: Run Planner sequentially, capture output
+    let plannerOutput = "";
+    const plannerStep = { agent: "planner" as CharacterName, progressAfter: 20, label: "Planning..." };
+    if (task.agents.includes("planner")) {
+      const result = await runSingleStep(task.id, plannerStep, taskMessage, context);
+      if (result) {
+        context.push(result);
+        plannerOutput = result.text;
+      }
+    }
+
+    // Step 3: Try to parse structured sections from Planner
+    const sections = parsePlannerSections(plannerOutput);
+
+    if (sections) {
+      // Parallel path: use structured sections
+      const pipeline = buildParallelPipeline(task, sections);
+      // Skip Mayor and Planner groups (already ran), process remaining groups
+      const remainingGroups = pipeline.filter((g) => {
+        const agents = g.steps.map((s) => s.agent);
+        return !agents.includes("mayor") && !agents.includes("planner");
+      });
+
+      for (const group of remainingGroups) {
+        if (group.type === "parallel" && group.steps.length > 1) {
+          // Set all agents in this group to "working"
+          setAgents((prev) =>
+            prev.map((a) => {
+              const step = group.steps.find((s) => s.agent === a.character);
+              if (step && a.taskId === task.id) {
+                return { ...a, state: "working" as const, taskLabel: step.label };
+              }
+              return a;
+            })
+          );
+
+          // Run all steps in parallel with a shared group ID
+          const groupId = `parallel-${Date.now()}`;
+          const results = await Promise.allSettled(
+            group.steps.map((step) => runSingleStep(task.id, step, taskMessage, [...context], groupId))
+          );
+
+          // Collect successful results into context
+          for (const result of results) {
+            if (result.status === "fulfilled" && result.value) {
+              context.push(result.value);
+            }
+          }
+
+          // Update task progress to group level
+          setTasks((prev) =>
+            prev.map((t) => t.id === task.id ? { ...t, progress: group.progressAfter } : t)
+          );
+        } else {
+          // Sequential group (single agent or reviewer)
+          for (const step of group.steps) {
+            const result = await runSingleStep(task.id, step, taskMessage, context);
+            if (result) context.push(result);
+          }
+        }
+      }
+    } else {
+      // Fallback: sequential pipeline (old behavior)
+      const fallbackPipeline = getAgentPipeline(task);
+      // Skip mayor and planner (already ran)
+      const remaining = fallbackPipeline.filter(
+        (s) => s.agent !== "mayor" && s.agent !== "planner"
+      );
+
+      for (const step of remaining) {
+        const result = await runSingleStep(task.id, step, taskMessage, context);
+        if (result) context.push(result);
+      }
+    }
+
+    // Mark task as done, release agents
+    const doneLog: LogEntry = {
+      id: `log-${Date.now()}-done`,
+      type: "result",
+      text: "Task complete! All agents returning to idle.",
+      timestamp: Date.now(),
+    };
+
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (t.id !== task.id) return t;
+        return { ...t, status: "done", progress: 100, log: [...t.log, doneLog] };
+      })
+    );
+
+    setAgents((prev) =>
+      prev.map((a) => {
+        if (a.taskId !== task.id) return a;
+        return { ...a, state: "idle" as const, taskId: undefined, taskLabel: undefined, progress: undefined };
+      })
+    );
+  }, [runSingleStep]);
+
+  const handleNewTask = useCallback((message: string) => {
+    const { task, updatedAgents } = createTask(message, agents);
+
+    setAgents(updatedAgents);
+    setTasks((prev) => [task, ...prev]);
+    setSelectedTaskId(task.id);
+
+    // Start the agent pipeline (runs async, doesn't block)
+    runPipeline(task, message);
+  }, [agents, runPipeline]);
+
+  const handleFollowUp = useCallback((taskId: string, message: string) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    // Guard: skip if task is running or agents are busy
+    if (task.status === "running") return;
+    const busyAgents = agents.filter((a) => a.state === "working");
+    const taskAgentsBusy = busyAgents.some((a) => task.agents.includes(a.character));
+    if (taskAgentsBusy) return;
+
+    const newRunCount = task.runCount + 1;
+
+    // Build previous context before modifying the task
+    const previousContext = buildPreviousContext(task);
+
+    // Add divider + user message to log, reopen the task
+    const dividerLog: LogEntry = {
+      id: `log-${Date.now()}-divider`,
+      type: "system",
+      text: `--- Follow-up #${newRunCount - 1} ---`,
+      timestamp: Date.now(),
+    };
+
+    const userLog: LogEntry = {
+      id: `log-${Date.now()}-followup`,
+      type: "user",
+      text: message,
+      timestamp: Date.now(),
+    };
+
+    const updatedTask: Task = {
+      ...task,
+      status: "running",
+      progress: 0,
+      runCount: newRunCount,
+      log: [...task.log, dividerLog, userLog],
+    };
+
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? updatedTask : t)));
+
+    // Reset original agents to "working"
+    setAgents((prev) =>
+      prev.map((a) => {
+        if (task.agents.includes(a.character)) {
+          return {
+            ...a,
+            state: "working" as const,
+            taskId: taskId,
+            taskLabel: `Working on: ${task.title}`,
+            progress: 0,
+          };
+        }
+        return a;
+      })
+    );
+
+    // Re-run the pipeline with previous context
+    runPipeline(updatedTask, message, previousContext);
+  }, [tasks, agents, runPipeline, buildPreviousContext]);
+
+  return (
+    <>
+      <div className="bg-pixel" />
+
+      <div className="h-screen flex">
+        {/* ─── Left: Agents ─── */}
+        <AgentSidebar agents={agents} />
+
+        {/* ─── Center: Tasks ─── */}
+        <main className="flex-1 flex flex-col min-w-0">
+          {/* Top bar */}
+          <header className="shrink-0 flex items-center justify-between px-5 py-3 border-b border-[var(--border)] bg-white/40">
+            <div className="flex items-center gap-3">
+              <span className="section-label bg-orange-50 text-orange-600">
+                Mission Control
+              </span>
+              <div className="flex items-center gap-2">
+                <div className={`w-[7px] h-[7px] rounded-full ${workingAgents > 0 ? "dot-working blink" : "dot-idle"}`} />
+                <span className="text-[12px] text-[var(--text-mid)]">
+                  {workingAgents > 0 ? `${workingAgents} agents working` : "All agents idle"}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-[12px] text-[var(--text-light)]">
+                {tasks.length} task{tasks.length !== 1 ? "s" : ""}
+              </span>
+              <span className="text-[12px] text-[var(--text-light)]">
+                {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+              </span>
+            </div>
+          </header>
+
+          {/* Command input */}
+          <div className="shrink-0 px-5 pt-4 pb-3">
+            <span className="text-[8px] font-pixel text-[var(--text-light)] uppercase tracking-wider mb-1.5 block">Global</span>
+            <CommandInput onSubmit={handleNewTask} disabled={false} />
+          </div>
+
+          {/* Task area */}
+          {tasks.length > 0 ? (
+            <div className="flex flex-1 min-h-0">
+              {/* Task list */}
+              <div className="w-60 shrink-0 overflow-y-auto p-3 space-y-2.5 border-r border-[var(--border)]">
+                {tasks.map((task) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    isSelected={task.id === selectedTaskId}
+                    onClick={() => setSelectedTaskId(task.id)}
+                  />
+                ))}
+              </div>
+
+              {/* Task detail */}
+              {selectedTask ? (
+                <TaskDetail
+                  task={selectedTask}
+                  streamingEntries={streamingEntries}
+                  onFollowUp={handleFollowUp}
+                />
+              ) : (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-[13px] text-[var(--text-light)]">Select a task to see details</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Empty state */
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center space-y-4">
+                <div className="flex justify-center gap-3 mb-5">
+                  {(["mayor", "planner", "researcher", "coder", "fixer", "reviewer", "monitor"] as const).map((char) => (
+                    <div key={char} className="bg-white rounded-lg p-1.5 border border-[var(--border)] shadow-sm" style={{ imageRendering: "pixelated" }}>
+                      <PixelSprite character={char} size={40} />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[var(--text-mid)] text-[13px] font-pixel">Your crew is ready!</p>
+                <p className="text-[var(--text-light)] text-[13px]">
+                  Type a task above to get started. You can run multiple tasks at once.
+                </p>
+                <div className="flex flex-wrap justify-center gap-2 mt-4 max-w-md mx-auto">
+                  {["build a landing page", "fix the login bug", "design a dashboard", "review the API"].map((example) => (
+                    <button
+                      key={example}
+                      onClick={() => handleNewTask(example)}
+                      className="text-[12px] font-medium text-indigo-500 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-1.5 hover:bg-indigo-100 transition-colors cursor-pointer"
+                    >
+                      {example}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    </>
+  );
+}
+
+function capitalize(s: CharacterName): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
