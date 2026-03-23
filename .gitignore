@@ -37,3 +37,8 @@ next-env.d.ts
 
 # gastown source (subproject, not part of this app)
 gastown/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
