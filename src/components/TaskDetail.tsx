@@ -398,9 +398,11 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
         </div>
       </div>
 
-      {/* Conversation (single column, accordion) */}
-      <div className="flex-1 overflow-y-auto bg-[var(--bg-card)]">
-        <div className="py-5 px-6 space-y-3 max-w-4xl mx-auto">
+      {/* Conversation + Crew Index */}
+      <div className="flex-1 flex min-h-0 bg-[var(--bg-card)]">
+        {/* Main conversation */}
+        <div className="flex-1 overflow-y-auto" id="conversation-scroll">
+          <div className="py-5 px-6 space-y-3">
           {task.log.map((entry) => {
             // System dividers
             if (entry.type === "system" && entry.text.startsWith("---")) {
@@ -426,7 +428,7 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
             // User prompts
             if (entry.type === "user") {
               return (
-                <div key={entry.id} className="rounded-lg overflow-hidden border-2 border-[var(--accent)]/30 my-4">
+                <div key={entry.id} id={`entry-${entry.id}`} className="rounded-lg overflow-hidden border-2 border-[var(--accent)]/30 my-4">
                   <div className="px-5 py-2.5 bg-[var(--accent)]">
                     <span className="font-pixel text-[14px] text-white uppercase">Your Prompt</span>
                   </div>
@@ -453,7 +455,7 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
             const summary = entry.text.length > SUMMARY_THRESHOLD ? summarize(entry.text) : entry.text;
 
             return (
-              <div key={entry.id} className="rounded-lg overflow-hidden border border-[var(--border)]">
+              <div key={entry.id} id={`entry-${entry.id}`} className="rounded-lg overflow-hidden border border-[var(--border)]">
                 {/* Agent header — always visible, clickable */}
                 <button
                   onClick={() => setSelectedEntryId(isExpanded ? null : entry.id)}
@@ -523,6 +525,61 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
 
           <div ref={bottomRef} />
         </div>
+      </div>
+
+      {/* Crew Index (sticky TOC) */}
+      {task.log.some((e) => e.type === "agent") && (
+        <div className="w-[180px] shrink-0 border-l border-[var(--border)] bg-[var(--bg-panel)] overflow-y-auto">
+          <div className="sticky top-0 py-4 px-3">
+            <span className="font-mono text-[10px] text-[var(--text-dim)] uppercase tracking-wider block mb-3 px-2">Index</span>
+            <div className="space-y-0.5">
+              {task.log.filter((e) => e.type === "agent" || e.type === "user").map((entry) => {
+                const isActive = entry.id === selectedEntryId;
+
+                if (entry.type === "user") {
+                  return (
+                    <button
+                      key={entry.id}
+                      onClick={() => {
+                        setSelectedEntryId(entry.id);
+                        document.getElementById(`entry-${entry.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+                      }}
+                      className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] transition-all cursor-pointer ${
+                        isActive ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "text-[var(--text-dim)] hover:bg-[var(--bg-card)]"
+                      }`}
+                    >
+                      You
+                    </button>
+                  );
+                }
+
+                const theme = entry.character ? (agentTheme[entry.character] || agentTheme.mayor) : agentTheme.mayor;
+                return (
+                  <button
+                    key={entry.id}
+                    onClick={() => {
+                      setSelectedEntryId(isActive ? null : entry.id);
+                      document.getElementById(`entry-${entry.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }}
+                    className={`w-full text-left px-2 py-1.5 rounded-md flex items-center gap-2 transition-all cursor-pointer ${
+                      isActive ? "bg-[var(--bg-card)]" : "hover:bg-[var(--bg-card)]"
+                    }`}
+                  >
+                    {entry.character && (
+                      <div style={{ imageRendering: "pixelated" }}>
+                        <PixelSprite character={entry.character} size={14} />
+                      </div>
+                    )}
+                    <span className={`text-[11px] truncate ${isActive ? "font-semibold" : ""}`} style={{ color: isActive ? theme.bg : "var(--text-mid)" }}>
+                      {entry.character ? entry.character.charAt(0).toUpperCase() + entry.character.slice(1) : "Agent"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
       </div>
 
       {/* Follow-up input */}

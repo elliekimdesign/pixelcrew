@@ -502,7 +502,7 @@ export default function Home() {
           <div className="flex-1 flex min-h-0 p-4 bg-[var(--bg)]">
             <div className="flex-1 flex min-h-0 bg-[var(--bg-panel)] rounded-xl overflow-hidden border border-[var(--border)]">
               {tasks.length > 0 ? (
-                <>
+                <div className="flex flex-1 min-h-0">
                   {/* Task list sidebar */}
                   <div className="w-64 shrink-0 overflow-y-auto p-3 space-y-1 border-r border-[var(--border)] bg-[var(--bg-panel)]">
                     {tasks.map((task) => (
@@ -527,7 +527,7 @@ export default function Home() {
                       <p className="text-[14px] text-[var(--text-dim)]">Select a task to see details</p>
                     </div>
                   )}
-                </>
+                </div>
               ) : (
                 <div className="flex-1 flex items-center justify-center">
                   <div className="text-center space-y-4">
