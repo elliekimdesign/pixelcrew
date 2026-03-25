@@ -18,6 +18,7 @@ export default function CommandInput({
   buttonLabel,
 }: Props) {
   const [input, setInput] = useState("");
+  const [focused, setFocused] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -46,59 +47,61 @@ export default function CommandInput({
 
   const isLocal = variant === "local";
 
-  const defaultPlaceholder = isLocal
-    ? "What should the team do next?"
-    : 'Give a task... e.g. "build a landing page"';
+  // Local variant (inside task detail footer)
+  if (isLocal) {
+    return (
+      <form onSubmit={handleSubmit} className="w-full">
+        <div className={`cmd-input-local flex items-center gap-4 px-5 py-3.5 transition-all duration-150 ${focused ? "cmd-focus-local" : ""}`}>
+          <span className="font-pixel text-[14px] text-[var(--accent)] shrink-0 opacity-50">{">_"}</span>
+          <input
+            ref={ref}
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            placeholder={placeholder || "Send follow-up orders..."}
+            className="flex-1 bg-transparent text-[15px] text-[var(--text)] outline-none placeholder:text-[var(--text-dim)] caret-[var(--accent)]"
+          />
+          {input.trim() && (
+            <button
+              type="submit"
+              className="font-pixel text-[14px] text-white uppercase bg-[var(--accent)] px-4 py-2 rounded-lg hover:brightness-110 transition-all"
+            >
+              {buttonLabel || "Send"}
+            </button>
+          )}
+        </div>
+      </form>
+    );
+  }
 
-  const defaultButtonLabel = isLocal ? "Continue" : "New Task";
-
+  // Global variant (big floating prompt)
   return (
     <form onSubmit={handleSubmit} className="w-full">
-      <div
-        className={
-          isLocal
-            ? "flex items-center gap-2.5 px-3 py-2 rounded-xl border border-[var(--border)] bg-white/40"
-            : "panel-solid flex items-center gap-3 px-4 py-3"
-        }
-      >
-        <span
-          className={
-            isLocal
-              ? "font-mono text-[13px] text-[var(--text-light)] shrink-0"
-              : "font-mono text-indigo-500 text-[14px] font-semibold shrink-0"
-          }
-        >
-          {isLocal ? "↩" : ">_"}
-        </span>
+      <div className={`cmd-input flex items-center gap-5 px-7 py-5 transition-all duration-200 ${focused ? "cmd-focus" : ""}`}>
+        <span className="font-pixel text-[18px] text-white/20 shrink-0">{">_"}</span>
         <input
           ref={ref}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={placeholder || defaultPlaceholder}
-          className={
-            isLocal
-              ? "flex-1 bg-transparent text-[13px] text-[var(--text)] outline-none placeholder:text-[var(--text-light)] caret-indigo-400"
-              : "flex-1 bg-transparent text-[14px] text-[var(--text)] outline-none placeholder:text-[var(--border-strong)] caret-indigo-500"
-          }
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder={placeholder || "Describe a mission for your crew..."}
+          className="flex-1 bg-transparent text-[18px] text-white/90 outline-none placeholder:text-white/25 caret-sky-400"
         />
         {input.trim() ? (
           <button
             type="submit"
-            className={
-              isLocal
-                ? "text-[11px] text-indigo-500 bg-transparent px-3 py-1 rounded-lg border border-indigo-400 hover:bg-indigo-50 transition-colors font-semibold"
-                : "text-[12px] text-white bg-indigo-500 px-4 py-1.5 rounded-lg border border-indigo-600 hover:bg-indigo-600 transition-colors font-semibold shadow-sm"
-            }
+            className="font-pixel text-[16px] text-white/90 uppercase bg-white/10 px-6 py-3 rounded-lg border border-white/10 hover:bg-white/15 transition-all"
           >
-            {buttonLabel || defaultButtonLabel}
+            {buttonLabel || "Deploy"}
           </button>
         ) : (
-          !isLocal && (
-            <kbd className="font-mono text-[11px] text-[var(--text-light)] font-medium border border-[var(--border)] rounded-md px-2 py-0.5 bg-[var(--bg)]">
-              /
-            </kbd>
-          )
+          <kbd className="font-mono text-[13px] text-white/25 border border-white/10 rounded-lg px-2.5 py-1 bg-white/[0.04]">
+            /
+          </kbd>
         )}
       </div>
     </form>

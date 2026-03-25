@@ -260,6 +260,11 @@ export default function Home() {
     const sections = parsePlannerSections(plannerOutput);
 
     if (sections) {
+      // Store plan sections on the task for visual diagram
+      setTasks((prev) =>
+        prev.map((t) => t.id === task.id ? { ...t, planSections: sections } : t)
+      );
+
       // Parallel path: use structured sections
       const pipeline = buildParallelPipeline(task, sections);
       const remainingGroups = pipeline.filter((g) => {
@@ -460,98 +465,98 @@ export default function Home() {
       <div className="bg-pixel" />
 
       <div className="h-screen flex">
-        {/* ─── Left: Agents ─── */}
-        <AgentSidebar agents={agents} />
+        {/* ═══ LEFT COLUMN: Crew (full height) ═══ */}
+        <div className="w-64 shrink-0 bg-[var(--crew-bg)] border-r border-white/[0.06]">
+          <AgentSidebar agents={agents} />
+        </div>
 
-        {/* ─── Center: Tasks ─── */}
-        <main className="flex-1 flex flex-col min-w-0">
-          {/* Top bar */}
-          <header className="shrink-0 flex items-center justify-between px-5 py-3 border-b border-[var(--border)] bg-white/40">
-            <div className="flex items-center gap-3">
-              <span className="section-label bg-orange-50 text-orange-600">
-                Mission Control
-              </span>
-              <div className="flex items-center gap-2">
-                <div className={`w-[7px] h-[7px] rounded-full ${workingAgents > 0 ? "dot-working blink" : "dot-idle"}`} />
-                <span className="text-[12px] text-[var(--text-mid)]">
-                  {workingAgents > 0 ? `${workingAgents} agents working` : "All agents idle"}
+        {/* ═══ RIGHT SIDE: Mission Control top + Content below ═══ */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Mission Control + Prompt (dark bar) */}
+          <div className="bg-[var(--crew-bg)] px-10 pt-5 pb-8 flex flex-col gap-5 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="font-pixel text-[18px] text-sky-400 uppercase">
+                  Mission Control
+                </span>
+                <div className="flex items-center gap-2">
+                  <div className={`w-[7px] h-[7px] rounded-full ${workingAgents > 0 ? "dot-working blink" : "dot-idle"}`} />
+                  <span className="font-mono text-[14px] text-[var(--crew-dim)]">
+                    {workingAgents > 0 ? `${workingAgents} active` : "All standby"}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="font-mono text-[14px] text-[var(--crew-dim)]">
+                  {tasks.length} task{tasks.length !== 1 ? "s" : ""}
+                </span>
+                <span className="font-mono text-[14px] text-[var(--crew-dim)]">
+                  {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-[12px] text-[var(--text-light)]">
-                {tasks.length} task{tasks.length !== 1 ? "s" : ""}
-              </span>
-              <span className="text-[12px] text-[var(--text-light)]">
-                {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-              </span>
-            </div>
-          </header>
-
-          {/* Command input */}
-          <div className="shrink-0 px-5 pt-4 pb-3">
-            <span className="text-[8px] font-pixel text-[var(--text-light)] uppercase tracking-wider mb-1.5 block">Global</span>
             <CommandInput onSubmit={handleNewTask} disabled={false} />
           </div>
 
-          {/* Task area */}
-          {tasks.length > 0 ? (
-            <div className="flex flex-1 min-h-0">
-              {/* Task list */}
-              <div className="w-60 shrink-0 overflow-y-auto p-3 space-y-2.5 border-r border-[var(--border)]">
-                {tasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    isSelected={task.id === selectedTaskId}
-                    onClick={() => setSelectedTaskId(task.id)}
-                  />
-                ))}
-              </div>
+          {/* Task + Chat area (light sky blue, inset) */}
+          <div className="flex-1 flex min-h-0 p-5 bg-[var(--bg)]">
+            <div className="flex-1 flex min-h-0 bg-[var(--bg-panel)] rounded-xl overflow-hidden border border-[var(--border)]">
+              {tasks.length > 0 ? (
+                <>
+                  {/* Task list */}
+                  <div className="w-80 shrink-0 overflow-y-auto p-4 space-y-2 border-r border-[var(--border)] bg-[var(--bg-panel)]">
+                    {tasks.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        isSelected={task.id === selectedTaskId}
+                        onClick={() => setSelectedTaskId(task.id)}
+                      />
+                    ))}
+                  </div>
 
-              {/* Task detail */}
-              {selectedTask ? (
-                <TaskDetail
-                  task={selectedTask}
-                  streamingEntries={streamingEntries}
-                  onFollowUp={handleFollowUp}
-                />
+                  {/* Chat */}
+                  {selectedTask ? (
+                    <TaskDetail
+                      task={selectedTask}
+                      streamingEntries={streamingEntries}
+                      onFollowUp={handleFollowUp}
+                    />
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center">
+                      <p className="text-[14px] text-[var(--text-dim)]">Select a task to see details</p>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="flex-1 flex items-center justify-center">
-                  <p className="text-[13px] text-[var(--text-light)]">Select a task to see details</p>
+                  <div className="text-center space-y-4">
+                    <div className="flex justify-center gap-3 mb-5">
+                      {(["mayor", "planner", "researcher", "coder", "fixer", "reviewer", "monitor"] as const).map((char) => (
+                        <div key={char} className="bg-[var(--bg-panel)] rounded-lg p-1.5 border border-[var(--border)]" style={{ imageRendering: "pixelated" }}>
+                          <PixelSprite character={char} size={40} />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="font-pixel text-[20px] text-[var(--text)] uppercase">Your crew is ready!</p>
+                    <p className="text-[14px] text-[var(--text-dim)]">Type a mission above to deploy your agents.</p>
+                    <div className="flex flex-wrap justify-center gap-2 mt-4 max-w-md mx-auto">
+                      {["build a landing page", "fix the login bug", "design a dashboard", "review the API"].map((example) => (
+                        <button
+                          key={example}
+                          onClick={() => handleNewTask(example)}
+                          className="font-mono text-[14px] text-[var(--accent)] bg-[var(--accent-soft)] border border-[var(--accent)]/20 rounded-lg px-3 py-1.5 hover:bg-[var(--accent)]/10 transition-colors cursor-pointer"
+                        >
+                          {example}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
-          ) : (
-            /* Empty state */
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center space-y-4">
-                <div className="flex justify-center gap-3 mb-5">
-                  {(["mayor", "planner", "researcher", "coder", "fixer", "reviewer", "monitor"] as const).map((char) => (
-                    <div key={char} className="bg-white rounded-lg p-1.5 border border-[var(--border)] shadow-sm" style={{ imageRendering: "pixelated" }}>
-                      <PixelSprite character={char} size={40} />
-                    </div>
-                  ))}
-                </div>
-                <p className="text-[var(--text-mid)] text-[13px] font-pixel">Your crew is ready!</p>
-                <p className="text-[var(--text-light)] text-[13px]">
-                  Type a task above to get started. You can run multiple tasks at once.
-                </p>
-                <div className="flex flex-wrap justify-center gap-2 mt-4 max-w-md mx-auto">
-                  {["build a landing page", "fix the login bug", "design a dashboard", "review the API"].map((example) => (
-                    <button
-                      key={example}
-                      onClick={() => handleNewTask(example)}
-                      className="text-[12px] font-medium text-indigo-500 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-1.5 hover:bg-indigo-100 transition-colors cursor-pointer"
-                    >
-                      {example}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </main>
+          </div>
+        </div>
       </div>
     </>
   );

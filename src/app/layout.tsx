@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Press_Start_2P } from "next/font/google";
+import { IBM_Plex_Sans, JetBrains_Mono, Jersey_10 } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
+const ibmPlex = IBM_Plex_Sans({
+  weight: ["400", "500", "600"],
   subsets: ["latin"],
   variable: "--font-sans",
 });
@@ -12,7 +13,7 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
 });
 
-const pressStart = Press_Start_2P({
+const jersey = Jersey_10({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-pixel",
@@ -30,7 +31,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${jetbrainsMono.variable} ${pressStart.variable}`}>{children}</body>
+      <body className={`${ibmPlex.variable} ${jetbrainsMono.variable} ${jersey.variable}`}>{children}</body>
     </html>
   );
 }

@@ -31,6 +31,7 @@ export interface Task {
   createdAt: number;
   runCount: number; // how many times the pipeline has run
   currentStep?: CurrentStep; // transient: tracks active pipeline step (not persisted)
+  planSections?: PlannerSection[]; // transient: parsed plan from Planner (not persisted)
 }
 
 export interface LogEntry {
