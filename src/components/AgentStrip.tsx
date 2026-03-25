@@ -52,7 +52,7 @@ export default function AgentSidebar({ agents }: Props) {
           return (
             <div
               key={agent.id}
-              className="rounded-lg px-4 py-4 cursor-default transition-all duration-150"
+              className="rounded-lg px-3 py-3 cursor-default transition-all duration-150"
               style={{
                 background: "rgba(255,255,255,0.04)",
                 border: "1px solid rgba(255,255,255,0.08)",
@@ -65,7 +65,7 @@ export default function AgentSidebar({ agents }: Props) {
                     className="rounded-lg p-1.5"
                     style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", imageRendering: "pixelated" }}
                   >
-                    <PixelSprite character={agent.character} size={48} />
+                    <PixelSprite character={agent.character} size={36} />
                   </div>
                   <div
                     className={`absolute -bottom-0.5 -right-0.5 w-[9px] h-[9px] rounded-full border-2 ${dotClass[agent.state]}`}
@@ -89,11 +89,11 @@ export default function AgentSidebar({ agents }: Props) {
               </div>
 
               {agent.taskLabel && (
-                <p className="font-mono text-[12px] text-[var(--crew-dim)] truncate mt-2 pl-[67px]">{agent.taskLabel}</p>
+                <p className="font-mono text-[12px] text-[var(--crew-dim)] truncate mt-2 pl-[52px]">{agent.taskLabel}</p>
               )}
 
               {isWorking && agent.progress !== undefined && (
-                <div className="mt-2 pl-[67px]">
+                <div className="mt-2 pl-[52px]">
                   <div className="px-bar" style={{ height: 4 }}>
                     <div className="px-bar-fill bar-run loading-bar-subtle" style={{ width: `${agent.progress}%` }} />
                   </div>

@@ -466,7 +466,7 @@ export default function Home() {
 
       <div className="h-screen flex">
         {/* ═══ LEFT COLUMN: Crew (full height) ═══ */}
-        <div className="w-64 shrink-0 bg-[var(--crew-bg)] border-r border-white/[0.06]">
+        <div className="w-52 shrink-0 bg-[var(--crew-bg)] border-r border-white/[0.06]">
           <AgentSidebar agents={agents} />
         </div>
 
@@ -498,13 +498,13 @@ export default function Home() {
             <CommandInput onSubmit={handleNewTask} disabled={false} />
           </div>
 
-          {/* Task + Chat area (light sky blue, inset) */}
-          <div className="flex-1 flex min-h-0 p-5 bg-[var(--bg)]">
+          {/* Task + Chat area */}
+          <div className="flex-1 flex min-h-0 p-4 bg-[var(--bg)]">
             <div className="flex-1 flex min-h-0 bg-[var(--bg-panel)] rounded-xl overflow-hidden border border-[var(--border)]">
               {tasks.length > 0 ? (
                 <>
-                  {/* Task list */}
-                  <div className="w-80 shrink-0 overflow-y-auto p-4 space-y-2 border-r border-[var(--border)] bg-[var(--bg-panel)]">
+                  {/* Task list sidebar */}
+                  <div className="w-64 shrink-0 overflow-y-auto p-3 space-y-1 border-r border-[var(--border)] bg-[var(--bg-panel)]">
                     {tasks.map((task) => (
                       <TaskCard
                         key={task.id}
@@ -533,7 +533,7 @@ export default function Home() {
                   <div className="text-center space-y-4">
                     <div className="flex justify-center gap-3 mb-5">
                       {(["mayor", "planner", "researcher", "coder", "fixer", "reviewer", "monitor"] as const).map((char) => (
-                        <div key={char} className="bg-[var(--bg-panel)] rounded-lg p-1.5 border border-[var(--border)]" style={{ imageRendering: "pixelated" }}>
+                        <div key={char} className="bg-[var(--bg-card)] rounded-lg p-1.5 border border-[var(--border)]" style={{ imageRendering: "pixelated" }}>
                           <PixelSprite character={char} size={40} />
                         </div>
                       ))}
@@ -545,7 +545,7 @@ export default function Home() {
                         <button
                           key={example}
                           onClick={() => handleNewTask(example)}
-                          className="font-mono text-[14px] text-[var(--accent)] bg-[var(--accent-soft)] border border-[var(--accent)]/20 rounded-lg px-3 py-1.5 hover:bg-[var(--accent)]/10 transition-colors cursor-pointer"
+                          className="text-[14px] text-[var(--accent)] bg-[var(--accent-soft)] border border-[var(--accent)]/20 rounded-lg px-3 py-1.5 hover:bg-[var(--accent)]/10 transition-colors cursor-pointer"
                         >
                           {example}
                         </button>

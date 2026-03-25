@@ -166,6 +166,65 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
 
+/* ── Prose (markdown detail view) ── */
+.prose-detail {
+  font-size: 15px;
+  line-height: 1.8;
+}
+.prose-detail h1, .prose-detail h2, .prose-detail h3 {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border);
+}
+.prose-detail h1 { font-size: 1.3em; }
+.prose-detail h2 { font-size: 1.15em; }
+.prose-detail h3 { font-size: 1.05em; border-bottom: none; }
+.prose-detail p {
+  margin-bottom: 0.8em;
+}
+.prose-detail ul, .prose-detail ol {
+  margin: 0.5em 0 1em 0;
+  padding-left: 1.5em;
+}
+.prose-detail li {
+  margin-bottom: 0.4em;
+}
+.prose-detail strong {
+  font-weight: 600;
+  color: var(--text);
+}
+.prose-detail code {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.9em;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+}
+.prose-detail pre {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1em;
+  overflow-x: auto;
+  margin: 0.8em 0;
+}
+.prose-detail pre code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+.prose-detail blockquote {
+  border-left: 3px solid var(--border-strong);
+  padding-left: 1em;
+  margin: 0.8em 0;
+  color: var(--text-dim);
+}
+
 /* ── Font utilities ── */
 .font-mono { font-family: var(--font-mono), "JetBrains Mono", monospace; }
 .font-pixel { font-family: var(--font-pixel), "Jersey 10", cursive; }

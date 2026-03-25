@@ -9,33 +9,44 @@ interface Props {
 }
 
 export default function TaskCard({ task, isSelected, onClick }: Props) {
-  const badgeClass = task.status === "done" ? "badge-done" : task.status === "stuck" ? "badge-stuck" : "badge-run";
-  const statusLabel = task.status === "done" ? "Done" : task.status === "stuck" ? "Stuck" : "Running";
   const barClass = task.status === "done" ? "bar-done" : task.status === "stuck" ? "bar-stuck" : "bar-run";
+
+  const statusLine = task.status === "done"
+    ? "Done"
+    : task.status === "stuck"
+    ? task.currentStep ? `Stuck at ${task.currentStep.agent}` : "Stuck"
+    : task.currentStep ? `${task.currentStep.agent}` : "Starting...";
+
+  const statusColor = task.status === "done"
+    ? "text-emerald-600"
+    : task.status === "stuck"
+    ? "text-red-500"
+    : "text-sky-600";
 
   return (
     <button
       onClick={onClick}
-      className={`card w-full text-left px-4 py-3.5 cursor-pointer transition-all duration-150 ${
-        isSelected ? "border-[var(--accent)] shadow-[0_0_0_1px_var(--accent-glow)]" : ""
+      className={`w-full text-left px-3.5 py-3 rounded-lg cursor-pointer transition-all duration-150 border ${
+        isSelected
+          ? "border-[var(--accent)] bg-[var(--bg-card)]"
+          : "border-transparent hover:bg-[var(--bg-card)]/50"
       }`}
     >
-      {/* Title row with badge */}
-      <div className="flex items-center gap-3 mb-2">
-        <p className="text-[14px] text-[var(--text)] leading-snug truncate flex-1">{task.title}</p>
-        <span className={`font-mono text-[10px] px-2 py-0.5 rounded-lg shrink-0 ${badgeClass}`}>{statusLabel}</span>
+      <p className="text-[13px] text-[var(--text)] truncate mb-1.5">{task.title}</p>
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className={`text-[12px] font-medium ${statusColor}`}>{statusLine}</span>
+        {task.status !== "done" && (
+          <span className="text-[11px] text-[var(--text-dim)] ml-auto">{task.progress}%</span>
+        )}
       </div>
-
-      {/* Progress bar with % */}
-      <div className="flex items-center gap-3">
-        <div className="px-bar flex-1">
+      {task.status !== "done" && (
+        <div className="px-bar">
           <div
             className={`px-bar-fill ${barClass} ${task.status === "running" ? "loading-bar-subtle" : ""}`}
             style={{ width: `${Math.max(task.progress, task.status === "running" ? 3 : 0)}%` }}
           />
         </div>
-        <span className="font-mono text-[11px] text-[var(--text-dim)] shrink-0 w-8 text-right">{task.progress}%</span>
-      </div>
+      )}
     </button>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Task, LogEntry, CharacterName, PlannerSection } from "@/lib/types";
 import PixelSprite from "./PixelSprite";
+import ReactMarkdown from "react-markdown";
 
 export interface StreamingEntry {
   taskId: string;
@@ -181,9 +182,12 @@ function SummaryRow({ entry, isSelected, onClick }: { entry: LogEntry; isSelecte
     }`}>
       <div className="flex items-center gap-2.5 mb-2">
         {entry.character && (
-          <div style={{ imageRendering: "pixelated" }}>
-            <PixelSprite character={entry.character} size={22} />
-          </div>
+          <>
+            <div className="w-[6px] h-[6px] rounded-full shrink-0" style={{ background: (agentTheme[entry.character] || agentTheme.mayor).bg }} />
+            <div style={{ imageRendering: "pixelated" }}>
+              <PixelSprite character={entry.character} size={22} />
+            </div>
+          </>
         )}
         <span className="font-mono font-semibold text-[14px] text-[var(--text)]">
           {entry.character ? entry.character.charAt(0).toUpperCase() + entry.character.slice(1) : "Agent"}
@@ -196,7 +200,7 @@ function SummaryRow({ entry, isSelected, onClick }: { entry: LogEntry; isSelecte
 
 // ── Inline reply input ───────────────────────────────────────────────
 
-function InlineReply({ placeholder, onSubmit }: { placeholder: string; onSubmit: (msg: string) => void }) {
+function InlineReply({ placeholder, onSubmit, compact }: { placeholder: string; onSubmit: (msg: string) => void; compact?: boolean }) {
   const [value, setValue] = useState("");
   const ref = useRef<HTMLInputElement>(null);
 
@@ -208,18 +212,18 @@ function InlineReply({ placeholder, onSubmit }: { placeholder: string; onSubmit:
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-6 pt-4 border-t border-[var(--border)]">
-      <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-panel)] px-4 py-3">
+    <form onSubmit={handleSubmit} className={compact ? "" : "mt-6 pt-4 border-t border-[var(--border)]"}>
+      <div className="flex items-center gap-3 rounded-lg border-2 border-[var(--border-strong)] bg-[var(--bg-card)] px-5 py-4 shadow-sm">
         <input
           ref={ref}
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={placeholder}
-          className="flex-1 bg-transparent text-[14px] text-[var(--text)] outline-none placeholder:text-[var(--text-dim)]"
+          className="flex-1 bg-transparent text-[15px] text-[var(--text)] outline-none placeholder:text-[var(--text-dim)]"
         />
         {value.trim() && (
-          <button type="submit" className="font-mono text-[12px] text-[var(--accent)] hover:underline shrink-0">
+          <button type="submit" className="font-pixel text-[14px] text-[var(--accent)] uppercase hover:opacity-80 shrink-0">
             Send
           </button>
         )}
@@ -227,6 +231,18 @@ function InlineReply({ placeholder, onSubmit }: { placeholder: string; onSubmit:
     </form>
   );
 }
+
+// ── Agent color map ──────────────────────────────────────────────────
+
+const agentTheme: Record<string, { bg: string; light: string; text: string; role: string }> = {
+  mayor:      { bg: "#5b6cf0", light: "#eef0ff", text: "#3730a3", role: "The Boss" },
+  planner:    { bg: "#8b5cf6", light: "#f3f0ff", text: "#5b21b6", role: "The Strategist" },
+  researcher: { bg: "#f59e0b", light: "#fefce8", text: "#92400e", role: "The Scout" },
+  coder:      { bg: "#06b6d4", light: "#ecfeff", text: "#155e75", role: "The Engineer" },
+  fixer:      { bg: "#f97316", light: "#fff7ed", text: "#9a3412", role: "The Mechanic" },
+  reviewer:   { bg: "#a855f7", light: "#faf5ff", text: "#6b21a8", role: "The Inspector" },
+  monitor:    { bg: "#22c55e", light: "#f0fdf4", text: "#166534", role: "The Watchdog" },
+};
 
 // ── Detail view (right panel) ───────────────────────────────────────
 
@@ -241,42 +257,51 @@ function DetailView({ entry, onReply }: { entry: LogEntry | null; onReply?: (msg
 
   if (entry.type === "user") {
     return (
-      <div className="flex-1 overflow-y-auto p-8">
-        <div className="flex items-center gap-2 mb-5 pb-4 border-b border-[var(--border)]">
-          <span className="font-mono font-semibold text-[15px] text-[var(--accent)]">Your Prompt</span>
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-8 py-5 bg-[var(--accent)] flex items-center gap-3">
+          <span className="font-pixel text-[16px] text-white uppercase">Your Prompt</span>
         </div>
-        <p className="text-[15px] leading-[1.8] whitespace-pre-wrap text-[var(--text)]">{entry.text}</p>
+        <div className="px-8 py-6">
+          <p className="text-[16px] leading-[1.8] whitespace-pre-wrap text-[var(--text)]">{entry.text}</p>
+        </div>
       </div>
     );
   }
 
   if (entry.type === "agent" && entry.character) {
     const agentName = entry.character.charAt(0).toUpperCase() + entry.character.slice(1);
+    const theme = agentTheme[entry.character] || agentTheme.mayor;
     return (
-      <div className="flex-1 overflow-y-auto p-8">
-        <div className="flex items-center gap-3 mb-5 pb-4 border-b border-[var(--border)]">
-          <div className="rounded-lg p-1 bg-[var(--bg-panel)] border border-[var(--border)]" style={{ imageRendering: "pixelated" }}>
-            <PixelSprite character={entry.character} size={40} />
+      <div className="flex-1 overflow-y-auto">
+        {/* Colored agent banner */}
+        <div className="px-8 py-5 flex items-center gap-4" style={{ background: theme.bg }}>
+          <div className="rounded-lg p-1.5 bg-white/20" style={{ imageRendering: "pixelated" }}>
+            <PixelSprite character={entry.character} size={44} />
           </div>
           <div>
-            <span className="font-mono font-semibold text-[16px] text-[var(--text)] block">{agentName}</span>
-            <span className="font-mono text-[12px] text-[var(--text-dim)]">Full response</span>
+            <span className="font-pixel text-[18px] text-white block uppercase">{agentName}</span>
+            <span className="text-[13px] text-white/60">{theme.role}</span>
           </div>
         </div>
-        <p className="text-[15px] leading-[1.8] whitespace-pre-wrap text-[var(--text-mid)]">{entry.text}</p>
+        {/* Response content */}
+        <div className="px-8 py-6">
+          <div className="prose-detail text-[var(--text-mid)]">
+            <ReactMarkdown>{entry.text}</ReactMarkdown>
+          </div>
 
-        {onReply && entry.text.includes("?") && (
-          <InlineReply placeholder={`Reply to ${agentName}...`} onSubmit={onReply} />
-        )}
+          {onReply && entry.text.includes("?") && (
+            <InlineReply placeholder={`Reply to ${agentName}...`} onSubmit={onReply} />
+          )}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="flex-1 overflow-y-auto p-8">
-      <p className={`text-[15px] leading-[1.8] whitespace-pre-wrap ${
-        entry.type === "result" ? "text-emerald-600" : "text-[var(--text-dim)]"
-      }`}>{entry.text}</p>
+      <div className={`prose-detail ${entry.type === "result" ? "text-emerald-600" : "text-[var(--text-dim)]"}`}>
+        <ReactMarkdown>{entry.text}</ReactMarkdown>
+      </div>
     </div>
   );
 }
@@ -373,34 +398,139 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
         </div>
       </div>
 
-      {/* Split view */}
-      <div className="flex-1 flex min-h-0">
-        {/* Left: Summary timeline */}
-        <div className="w-[340px] shrink-0 overflow-y-auto border-r border-[var(--border)] bg-[var(--bg-card)]">
-          <div className="py-5 px-4 space-y-3">
-            {task.log.map((entry) => (
-              <SummaryRow
-                key={entry.id}
-                entry={entry}
-                isSelected={entry.id === selectedEntryId}
-                onClick={() => setSelectedEntryId(entry.id)}
-              />
-            ))}
-            {activeEntries.map((entry) => (
-              <StreamingSummary key={`streaming-${entry.agent}`} entry={entry} />
-            ))}
-            <div ref={bottomRef} />
-          </div>
-        </div>
+      {/* Conversation (single column, accordion) */}
+      <div className="flex-1 overflow-y-auto bg-[var(--bg-card)]">
+        <div className="py-5 px-6 space-y-3 max-w-4xl mx-auto">
+          {task.log.map((entry) => {
+            // System dividers
+            if (entry.type === "system" && entry.text.startsWith("---")) {
+              const label = entry.text.replace(/^-+\s*/, "").replace(/\s*-+$/, "");
+              return (
+                <div key={entry.id} className="flex items-center gap-2 py-2">
+                  <div className="flex-1 h-px bg-[var(--border)]" />
+                  <span className="font-mono text-[11px] text-[var(--text-dim)]">{label}</span>
+                  <div className="flex-1 h-px bg-[var(--border)]" />
+                </div>
+              );
+            }
 
-        {/* Right: Full detail */}
-        <div className="flex-1 flex flex-col min-h-0 bg-[var(--bg-card)]">
-          <DetailView
-            entry={selectedEntry}
-            onReply={onFollowUp ? (msg) => onFollowUp(task.id, msg) : undefined}
-          />
+            // System messages
+            if (entry.type === "system") {
+              return (
+                <div key={entry.id} className="px-2 py-1">
+                  <p className="text-[13px] text-[var(--text-dim)] italic">{entry.text}</p>
+                </div>
+              );
+            }
+
+            // User prompts
+            if (entry.type === "user") {
+              return (
+                <div key={entry.id} className="rounded-lg overflow-hidden border-2 border-[var(--accent)]/30 my-4">
+                  <div className="px-5 py-2.5 bg-[var(--accent)]">
+                    <span className="font-pixel text-[14px] text-white uppercase">Your Prompt</span>
+                  </div>
+                  <div className="px-5 py-4 bg-[var(--accent-soft)]">
+                    <p className="text-[15px] leading-[1.7] text-[var(--text)]">{entry.text}</p>
+                  </div>
+                </div>
+              );
+            }
+
+            // Result
+            if (entry.type === "result") {
+              return (
+                <div key={entry.id} className="px-2 py-2">
+                  <p className="text-[13px] text-emerald-600 font-semibold">{entry.text}</p>
+                </div>
+              );
+            }
+
+            // Agent entries — accordion
+            const isExpanded = entry.id === selectedEntryId;
+            const theme = entry.character ? (agentTheme[entry.character] || agentTheme.mayor) : agentTheme.mayor;
+            const agentName = entry.character ? entry.character.charAt(0).toUpperCase() + entry.character.slice(1) : "Agent";
+            const summary = entry.text.length > SUMMARY_THRESHOLD ? summarize(entry.text) : entry.text;
+
+            return (
+              <div key={entry.id} className="rounded-lg overflow-hidden border border-[var(--border)]">
+                {/* Agent header — always visible, clickable */}
+                <button
+                  onClick={() => setSelectedEntryId(isExpanded ? null : entry.id)}
+                  className="w-full flex items-center gap-3 px-5 py-3 cursor-pointer transition-all"
+                  style={{ background: isExpanded ? theme.bg : theme.light }}
+                >
+                  {entry.character && (
+                    <div className="rounded-lg p-1" style={{ background: isExpanded ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.04)", imageRendering: "pixelated" }}>
+                      <PixelSprite character={entry.character} size={isExpanded ? 36 : 24} />
+                    </div>
+                  )}
+                  <div className="flex-1 text-left min-w-0">
+                    <span className={`font-mono font-semibold text-[14px] block ${isExpanded ? "text-white" : ""}`} style={!isExpanded ? { color: theme.text } : undefined}>
+                      {agentName}
+                    </span>
+                    {!isExpanded && (
+                      <p className="text-[12px] text-[var(--text-mid)] truncate mt-0.5">{summary}</p>
+                    )}
+                    {isExpanded && (
+                      <span className="text-[12px] text-white/60">{theme.role}</span>
+                    )}
+                  </div>
+                  <span className={`text-[12px] shrink-0 ${isExpanded ? "text-white/40" : "text-[var(--text-dim)]"}`}>
+                    {isExpanded ? "▲" : "▼"}
+                  </span>
+                </button>
+
+                {/* Expanded content */}
+                {isExpanded && (
+                  <div className="px-6 py-5 border-t border-[var(--border)]">
+                    <div className="prose-detail text-[var(--text-mid)]">
+                      <ReactMarkdown>{entry.text}</ReactMarkdown>
+                    </div>
+                    {onFollowUp && entry.text.includes("?") && (
+                      <InlineReply placeholder={`Reply to ${agentName}...`} onSubmit={(msg) => onFollowUp(task.id, msg)} />
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Streaming entries */}
+          {activeEntries.map((entry) => {
+            const theme = agentTheme[entry.agent] || agentTheme.mayor;
+            const agentName = entry.agent.charAt(0).toUpperCase() + entry.agent.slice(1);
+            return (
+              <div key={`streaming-${entry.agent}`} className="rounded-lg overflow-hidden border border-[var(--border)]">
+                <div className="flex items-center gap-3 px-5 py-3" style={{ background: theme.bg }}>
+                  <div className="rounded-lg p-1 bg-white/20" style={{ imageRendering: "pixelated" }}>
+                    <PixelSprite character={entry.agent} size={36} />
+                  </div>
+                  <div>
+                    <span className="font-mono font-semibold text-[14px] text-white block">{agentName}</span>
+                    <span className="text-[12px] text-white/60">{theme.role}</span>
+                  </div>
+                  <span className="cursor-blink ml-auto" />
+                </div>
+                <div className="px-6 py-5 border-t border-[var(--border)]">
+                  <div className="prose-detail text-[var(--text-mid)]">
+                    <ReactMarkdown>{entry.text}</ReactMarkdown>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          <div ref={bottomRef} />
         </div>
       </div>
+
+      {/* Follow-up input */}
+      {onFollowUp && (task.status === "done" || task.status === "stuck") && (
+        <div className="shrink-0 px-8 py-4 border-t border-[var(--border)]">
+          <InlineReply compact placeholder="Send a follow-up..." onSubmit={(msg) => onFollowUp(task.id, msg)} />
+        </div>
+      )}
     </div>
   );
 }
