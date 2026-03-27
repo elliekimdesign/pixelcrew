@@ -72,6 +72,6 @@ The frontend (`callAgent` in taskEngine) reads via `response.body.getReader()` a
 
 ## UI conventions
 
-- Retro pixel-art aesthetic: Press Start 2P font for labels, 12×12 SVG pixel sprites per agent, beige palette.
+- Retro pixel-art aesthetic: Press Start 2P font for labels, 12×12 SVG pixel sprites per agent, forest green palette.
 - Parallel agent outputs render side-by-side with fork/merge connectors in `TaskDetail`.
 - Agent states: `idle`, `working`, `done`, `stuck`. Monitor is always `working` (passive watchdog, never assigned to tasks).

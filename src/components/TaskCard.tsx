@@ -1,6 +1,7 @@
 "use client";
 
 import { Task } from "@/lib/types";
+import PixelSprite from "./PixelSprite";
 
 interface Props {
   task: Task;
@@ -21,22 +22,37 @@ export default function TaskCard({ task, isSelected, onClick }: Props) {
     ? "text-emerald-600"
     : task.status === "stuck"
     ? "text-red-500"
-    : "text-sky-600";
+    : "text-emerald-600";
 
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-3.5 py-3 rounded-lg cursor-pointer transition-all duration-150 border ${
+      className={`w-full text-left px-5 py-3.5 rounded-lg cursor-pointer transition-all duration-150 border ${
         isSelected
-          ? "border-[var(--accent)] bg-[var(--bg-card)]"
+          ? "border-[var(--accent)] bg-[var(--bg-card)] shadow-sm"
           : "border-transparent hover:bg-[var(--bg-card)]/50"
       }`}
     >
-      <p className="text-[13px] text-[var(--text)] truncate mb-1.5">{task.title}</p>
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className={`text-[12px] font-medium ${statusColor}`}>{statusLine}</span>
+      <p className="text-[14px] text-[var(--text)] font-medium truncate mb-2">{task.title}</p>
+      
+      {/* Agent badges */}
+      <div className="flex items-center gap-1 mb-2.5 flex-wrap">
+        {task.agents.map((char) => (
+          <div 
+            key={char} 
+            className="rounded-md p-0.5 border border-[var(--border)] bg-[var(--bg-panel)]" 
+            style={{ imageRendering: "pixelated" }}
+            title={char.charAt(0).toUpperCase() + char.slice(1)}
+          >
+            <PixelSprite character={char} size={14} />
+          </div>
+        ))}
+        <span className={`text-[12px] font-medium ml-1 ${statusColor}`}>{statusLine}</span>
+      </div>
+
+      <div className="flex items-center gap-2 mb-2">
         {task.status !== "done" && (
-          <span className="text-[11px] text-[var(--text-dim)] ml-auto">{task.progress}%</span>
+          <span className="text-[12px] text-[var(--text-dim)] ml-auto">{task.progress}%</span>
         )}
       </div>
       {task.status !== "done" && (

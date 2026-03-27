@@ -466,31 +466,31 @@ export default function Home() {
 
       <div className="h-screen flex">
         {/* ═══ LEFT COLUMN: Crew (full height) ═══ */}
-        <div className="w-52 shrink-0 bg-[var(--crew-bg)] border-r border-white/[0.06]">
+        <div className="w-52 shrink-0 bg-[var(--crew-bg)] border-r-2 border-[var(--crew-border)]">
           <AgentSidebar agents={agents} />
         </div>
 
         {/* ═══ RIGHT SIDE: Mission Control top + Content below ═══ */}
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Mission Control + Prompt (dark bar) */}
-          <div className="bg-[var(--crew-bg)] px-10 pt-5 pb-8 flex flex-col gap-5 border-b border-white/[0.06]">
+          {/* Mission Control + Prompt (light bar) */}
+          <div className="bg-gradient-to-b from-emerald-50 to-[var(--crew-bg)] px-12 pt-8 pb-10 flex flex-col gap-6 border-b-2 border-[var(--crew-border)]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="font-pixel text-[18px] text-sky-400 uppercase">
+                <span className="font-pixel text-[16px] text-emerald-600 uppercase drop-shadow-sm">
                   Mission Control
                 </span>
                 <div className="flex items-center gap-2">
                   <div className={`w-[7px] h-[7px] rounded-full ${workingAgents > 0 ? "dot-working blink" : "dot-idle"}`} />
-                  <span className="font-mono text-[14px] text-[var(--crew-dim)]">
+                  <span className="text-[14px] text-[var(--crew-dim)] font-semibold">
                     {workingAgents > 0 ? `${workingAgents} active` : "All standby"}
                   </span>
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <span className="font-mono text-[14px] text-[var(--crew-dim)]">
+                <span className="text-[14px] text-[var(--crew-dim)] font-semibold">
                   {tasks.length} task{tasks.length !== 1 ? "s" : ""}
                 </span>
-                <span className="font-mono text-[14px] text-[var(--crew-dim)]">
+                <span className="text-[14px] text-[var(--crew-dim)] font-semibold">
                   {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
                 </span>
               </div>
@@ -499,12 +499,18 @@ export default function Home() {
           </div>
 
           {/* Task + Chat area */}
-          <div className="flex-1 flex min-h-0 p-4 bg-[var(--bg)]">
-            <div className="flex-1 flex min-h-0 bg-[var(--bg-panel)] rounded-xl overflow-hidden border border-[var(--border)]">
+          <div className="flex-1 flex min-h-0 p-6 bg-[var(--bg)] gap-4">
               {tasks.length > 0 ? (
-                <div className="flex flex-1 min-h-0">
+                <>
                   {/* Task list sidebar */}
-                  <div className="w-64 shrink-0 overflow-y-auto p-3 space-y-1 border-r border-[var(--border)] bg-[var(--bg-panel)]">
+                  <div className="w-80 shrink-0 flex flex-col rounded-xl border-2 border-[var(--border-strong)] bg-white shadow-sm overflow-hidden">
+                    <div className="px-5 py-4 border-b-2 border-[var(--border-strong)] bg-[var(--bg-panel)]">
+                      <div className="flex items-center justify-between">
+                        <span className="font-pixel text-[16px] text-[var(--text)] uppercase">Tasks</span>
+                        <span className="text-[12px] text-[var(--text-dim)]">{tasks.length} total</span>
+                      </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto px-6 py-5 space-y-2">
                     {tasks.map((task) => (
                       <TaskCard
                         key={task.id}
@@ -513,39 +519,42 @@ export default function Home() {
                         onClick={() => setSelectedTaskId(task.id)}
                       />
                     ))}
+                    </div>
                   </div>
 
                   {/* Chat */}
                   {selectedTask ? (
-                    <TaskDetail
-                      task={selectedTask}
-                      streamingEntries={streamingEntries}
-                      onFollowUp={handleFollowUp}
-                    />
+                    <div className="flex-1 min-w-0 rounded-xl border-2 border-[var(--border-strong)] bg-white shadow-sm overflow-hidden">
+                      <TaskDetail
+                        task={selectedTask}
+                        streamingEntries={streamingEntries}
+                        onFollowUp={handleFollowUp}
+                      />
+                    </div>
                   ) : (
-                    <div className="flex-1 flex items-center justify-center">
+                    <div className="flex-1 flex items-center justify-center rounded-xl border-2 border-[var(--border)] bg-white/50">
                       <p className="text-[14px] text-[var(--text-dim)]">Select a task to see details</p>
                     </div>
                   )}
-                </div>
+                </>
               ) : (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-center space-y-4">
-                    <div className="flex justify-center gap-3 mb-5">
+                <div className="flex-1 flex items-center justify-center rounded-xl border-2 border-[var(--border)] bg-white/50">
+                  <div className="text-center space-y-6">
+                    <div className="flex justify-center gap-3 mb-6">
                       {(["mayor", "planner", "researcher", "coder", "fixer", "reviewer", "monitor"] as const).map((char) => (
-                        <div key={char} className="bg-[var(--bg-card)] rounded-lg p-1.5 border border-[var(--border)]" style={{ imageRendering: "pixelated" }}>
+                        <div key={char} className="bg-[var(--bg-card)] rounded-lg p-2 border border-[var(--border)]" style={{ imageRendering: "pixelated" }}>
                           <PixelSprite character={char} size={40} />
                         </div>
                       ))}
                     </div>
-                    <p className="font-pixel text-[20px] text-[var(--text)] uppercase">Your crew is ready!</p>
+                    <p className="font-pixel text-[16px] text-[var(--text)] uppercase">Your crew is ready!</p>
                     <p className="text-[14px] text-[var(--text-dim)]">Type a mission above to deploy your agents.</p>
-                    <div className="flex flex-wrap justify-center gap-2 mt-4 max-w-md mx-auto">
+                    <div className="flex flex-wrap justify-center gap-2 mt-5 max-w-md mx-auto">
                       {["build a landing page", "fix the login bug", "design a dashboard", "review the API"].map((example) => (
                         <button
                           key={example}
                           onClick={() => handleNewTask(example)}
-                          className="text-[14px] text-[var(--accent)] bg-[var(--accent-soft)] border border-[var(--accent)]/20 rounded-lg px-3 py-1.5 hover:bg-[var(--accent)]/10 transition-colors cursor-pointer"
+                          className="text-[14px] text-[var(--accent)] bg-[var(--accent-soft)] border border-[var(--accent)]/20 rounded-lg px-4 py-2 hover:bg-[var(--accent)]/10 transition-colors cursor-pointer"
                         >
                           {example}
                         </button>
@@ -554,7 +563,6 @@ export default function Home() {
                   </div>
                 </div>
               )}
-            </div>
           </div>
         </div>
       </div>

@@ -51,8 +51,8 @@ export default function CommandInput({
   if (isLocal) {
     return (
       <form onSubmit={handleSubmit} className="w-full">
-        <div className={`cmd-input-local flex items-center gap-4 px-5 py-3.5 transition-all duration-150 ${focused ? "cmd-focus-local" : ""}`}>
-          <span className="font-pixel text-[14px] text-[var(--accent)] shrink-0 opacity-50">{">_"}</span>
+        <div className={`cmd-input-local flex items-center gap-4 px-6 py-4 transition-all duration-150 ${focused ? "cmd-focus-local" : ""}`}>
+          <span className="text-[14px] text-[var(--accent)] shrink-0 opacity-50">{">_"}</span>
           <input
             ref={ref}
             type="text"
@@ -61,12 +61,12 @@ export default function CommandInput({
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             placeholder={placeholder || "Send follow-up orders..."}
-            className="flex-1 bg-transparent text-[15px] text-[var(--text)] outline-none placeholder:text-[var(--text-dim)] caret-[var(--accent)]"
+            className="flex-1 bg-transparent text-[14px] text-[var(--text)] outline-none placeholder:text-[var(--text-dim)] caret-[var(--accent)]"
           />
           {input.trim() && (
             <button
               type="submit"
-              className="font-pixel text-[14px] text-white uppercase bg-[var(--accent)] px-4 py-2 rounded-lg hover:brightness-110 transition-all"
+              className="text-[14px] text-white uppercase bg-[var(--accent)] px-5 py-2.5 rounded-lg hover:brightness-110 transition-all font-semibold"
             >
               {buttonLabel || "Send"}
             </button>
@@ -79,8 +79,8 @@ export default function CommandInput({
   // Global variant (big floating prompt)
   return (
     <form onSubmit={handleSubmit} className="w-full">
-      <div className={`cmd-input flex items-center gap-5 px-7 py-5 transition-all duration-200 ${focused ? "cmd-focus" : ""}`}>
-        <span className="font-pixel text-[18px] text-white/20 shrink-0">{">_"}</span>
+      <div className={`flex items-center gap-5 px-8 py-6 transition-all duration-200 bg-white rounded-xl border-2 ${focused ? "border-[var(--accent)] shadow-md" : "border-[var(--crew-border)]"}`}>
+        <span className="text-[16px] text-emerald-600/40 shrink-0">{">_"}</span>
         <input
           ref={ref}
           type="text"
@@ -89,17 +89,17 @@ export default function CommandInput({
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           placeholder={placeholder || "Describe a mission for your crew..."}
-          className="flex-1 bg-transparent text-[18px] text-white/90 outline-none placeholder:text-white/25 caret-sky-400"
+          className="flex-1 bg-transparent text-[16px] text-[var(--text)] outline-none placeholder:text-[var(--text-dim)] caret-emerald-500"
         />
         {input.trim() ? (
           <button
             type="submit"
-            className="font-pixel text-[16px] text-white/90 uppercase bg-white/10 px-6 py-3 rounded-lg border border-white/10 hover:bg-white/15 transition-all"
+            className="text-[14px] text-white uppercase bg-emerald-600 px-7 py-3.5 rounded-lg border-2 border-emerald-700 hover:bg-emerald-700 transition-all shadow-sm font-semibold"
           >
             {buttonLabel || "Deploy"}
           </button>
         ) : (
-          <kbd className="font-mono text-[13px] text-white/25 border border-white/10 rounded-lg px-2.5 py-1 bg-white/[0.04]">
+          <kbd className="text-[12px] text-[var(--text-dim)] border-2 border-[var(--border)] rounded-lg px-3 py-1.5 bg-[var(--bg-panel)]">
             /
           </kbd>
         )}
