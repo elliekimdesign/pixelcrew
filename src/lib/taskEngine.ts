@@ -1,3 +1,4 @@
+import { capitalizeLeadingLetter } from "./format";
 import { Agent, Task, LogEntry, CharacterName, PlannerSection, PipelineGroup, AgentStep } from "./types";
 
 let taskCounter = 0;
@@ -78,7 +79,10 @@ export function createTask(message: string, agents: Agent[]): { task: Task; upda
         ...a,
         state: "working" as const,
         taskId: id,
-        taskLabel: a.character === "mayor" ? `Coordinating: ${task.title}` : `Working on: ${task.title}`,
+        taskLabel:
+          a.character === "mayor"
+            ? `Coordinating: ${capitalizeLeadingLetter(task.title)}`
+            : `Working on: ${capitalizeLeadingLetter(task.title)}`,
         progress: 0,
       };
     }

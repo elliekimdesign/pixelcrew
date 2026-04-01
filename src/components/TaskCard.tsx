@@ -1,7 +1,8 @@
 "use client";
 
+import { capitalizeLeadingLetter } from "@/lib/format";
+import { instrumentSans } from "@/lib/fonts";
 import { Task } from "@/lib/types";
-import PixelSprite from "./PixelSprite";
 
 interface Props {
   task: Task;
@@ -17,7 +18,6 @@ const statusBadge = {
 
 export default function TaskCard({ task, isSelected, onClick }: Props) {
   const status = statusBadge[task.status] || statusBadge.running;
-  const leadAgent = task.agents[0];
 
   return (
     <button
@@ -28,9 +28,11 @@ export default function TaskCard({ task, isSelected, onClick }: Props) {
           : "border-l-[var(--border-strong)] bg-white/20 hover:border-l-[var(--accent)]/60 hover:bg-white/40"
       }`}
     >
-      <div className="pl-6 pr-5 py-2.5">
-        <p className={`text-[14px] truncate leading-tight mb-1 ${isSelected ? "text-[var(--text)] font-semibold" : "text-[var(--text-mid)]"}`}>
-          {task.title}
+      <div className="pl-8 pr-6 py-3.5">
+        <p
+          className={`${instrumentSans.className} text-[14px] truncate leading-tight mb-2 ${isSelected ? "text-[var(--text)] font-semibold" : "text-[var(--text-mid)]"}`}
+        >
+          {capitalizeLeadingLetter(task.title)}
         </p>
         <div className="flex items-center gap-2">
           <span className={`text-[10px] font-bold tracking-wider uppercase ${status.text}`}>

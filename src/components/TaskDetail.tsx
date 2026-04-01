@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { capitalizeLeadingLetter } from "@/lib/format";
+import { instrumentSans } from "@/lib/fonts";
 import { Task, LogEntry, CharacterName, PlannerSection } from "@/lib/types";
 import PixelSprite from "./PixelSprite";
 import ReactMarkdown from "react-markdown";
@@ -101,14 +103,14 @@ function PlanDiagram({ sections, taskAgents, currentStepIndex }: { sections: Pla
             
             {/* Show parallel agents stacked or single agent */}
             {group.isParallel ? (
-              <div className={`rounded-lg border-2 transition-all pl-4 pr-3 pt-3 pb-3 ${
+              <div className={`rounded-lg border-2 transition-all p-3 ${
                 isCurrent
                   ? "border-[var(--accent)] bg-[var(--accent-soft)] shadow-md"
                   : isDone
                   ? "border-[var(--border)] bg-[var(--bg)] opacity-50"
                   : "border-[var(--border)] bg-[var(--bg-panel)]"
               }`}>
-                <div className="text-center mb-2 pl-1">
+                <div className="text-center mb-2">
                   <span className={`text-[10px] uppercase tracking-wider font-bold ${
                     isCurrent ? "text-[var(--accent)]" : "text-[var(--text-dim)]"
                   }`}>
@@ -117,7 +119,7 @@ function PlanDiagram({ sections, taskAgents, currentStepIndex }: { sections: Pla
                 </div>
                 <div className="space-y-1.5">
                   {group.agents.map((agent, j) => (
-                    <div key={j} className={`flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-md ${
+                    <div key={j} className={`flex items-center gap-2 px-2 py-1.5 rounded-md ${
                       isCurrent ? "bg-white/60" : "bg-white/20"
                     }`}>
                       <div style={{ imageRendering: "pixelated" }}>
@@ -133,7 +135,7 @@ function PlanDiagram({ sections, taskAgents, currentStepIndex }: { sections: Pla
                 </div>
               </div>
             ) : (
-              <div className={`rounded-lg border-2 pl-5 pr-4 py-2.5 transition-all ${
+              <div className={`rounded-lg border-2 px-4 py-2.5 transition-all ${
                 isCurrent
                   ? "border-[var(--accent)] bg-[var(--accent-soft)] shadow-sm"
                   : isDone
@@ -177,7 +179,7 @@ function SummaryRow({ entry, isSelected, onClick }: { entry: LogEntry; isSelecte
 
   if (entry.type === "system") {
     return (
-      <div className="pl-5 pr-4 py-2">
+      <div className="px-4 py-2">
         <p className="text-[14px] text-[var(--text-dim)] italic">{entry.text}</p>
       </div>
     );
@@ -249,7 +251,7 @@ function InlineReply({ placeholder, onSubmit, compact }: { placeholder: string; 
 
   return (
     <form onSubmit={handleSubmit} className={compact ? "mt-4" : "mt-6 pt-4 border-t border-[var(--border)]"}>
-      <div className="flex items-center gap-3 border border-[var(--border-strong)] bg-[var(--bg-card)] pl-6 pr-5 py-3">
+      <div className="flex items-center gap-3 border border-[var(--border-strong)] bg-[var(--bg-card)] px-5 py-3">
         <input
           ref={ref}
           type="text"
@@ -294,11 +296,11 @@ function DetailView({ entry, onReply }: { entry: LogEntry | null; onReply?: (msg
   if (entry.type === "user") {
     return (
       <div className="flex-1 overflow-y-auto">
-        <div className="pl-10 pr-8 py-5 bg-[var(--accent)] flex items-center gap-3">
+        <div className="pl-[4.5rem] pr-10 py-5 bg-[var(--accent)] flex items-center gap-3">
           <span className="text-[14px] text-white uppercase font-semibold">Your Prompt</span>
         </div>
-        <div className="pl-10 pr-8 py-6">
-          <p className="text-[16px] leading-[1.8] whitespace-pre-wrap text-[var(--text)]">{entry.text}</p>
+        <div className="pl-[4.5rem] pr-12 py-6 bg-white">
+          <p className="text-[16px] leading-[1.8] whitespace-pre-wrap text-[var(--text)] pl-1">{entry.text}</p>
         </div>
       </div>
     );
@@ -310,7 +312,7 @@ function DetailView({ entry, onReply }: { entry: LogEntry | null; onReply?: (msg
     return (
       <div className="flex-1 overflow-y-auto">
         {/* Colored agent banner */}
-        <div className="pl-10 pr-8 py-5 flex items-center gap-4" style={{ background: theme.bg }}>
+        <div className="px-8 py-5 flex items-center gap-4" style={{ background: theme.bg }}>
           <div className="rounded-lg p-1.5 bg-white/20" style={{ imageRendering: "pixelated" }}>
             <PixelSprite character={entry.character} size={44} />
           </div>
@@ -320,7 +322,7 @@ function DetailView({ entry, onReply }: { entry: LogEntry | null; onReply?: (msg
           </div>
         </div>
         {/* Response content */}
-        <div className="pl-10 pr-8 py-6">
+        <div className="px-8 py-6">
           <div className="prose-detail text-[var(--text-mid)]">
             <ReactMarkdown>{entry.text}</ReactMarkdown>
           </div>
@@ -330,7 +332,7 @@ function DetailView({ entry, onReply }: { entry: LogEntry | null; onReply?: (msg
   }
 
   return (
-    <div className="flex-1 overflow-y-auto pl-10 pr-8 py-8">
+    <div className="flex-1 overflow-y-auto p-8">
       <div className={`prose-detail ${entry.type === "result" ? "text-emerald-600" : "text-[var(--text-dim)]"}`}>
         <ReactMarkdown>{entry.text}</ReactMarkdown>
       </div>
@@ -392,8 +394,10 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
     <div className="flex-1 flex flex-col min-h-0 h-full">
       {/* Header — same horizontal rail as agent cards + thread */}
       <div className="border-b border-[var(--border)] bg-[var(--bg-panel)]">
-        <div className="rail-inset py-3 flex items-center gap-4">
-          <span className="text-[15px] text-[var(--text)] font-semibold truncate flex-1">{task.title}</span>
+        <div className="w-full max-w-[1000px] mx-auto pl-16 pr-14 py-5 flex items-center gap-4">
+          <span className={`${instrumentSans.className} text-[15px] text-[var(--text)] font-semibold truncate flex-1`}>
+            {capitalizeLeadingLetter(task.title)}
+          </span>
           <div className="flex items-center gap-2 shrink-0">
             {task.agents.map((char) => (
               <div key={char} className="p-1.5 border border-[var(--border)] bg-[var(--bg-card)]" style={{ imageRendering: "pixelated" }}>
@@ -410,9 +414,9 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
       {/* Pipeline diagram + Progress */}
       {/* Pipeline section */}
       <div className="border-b border-[var(--border)] bg-[var(--bg-panel)]">
-        <div className="rail-inset py-4">
-        <div className="border border-[var(--border)] pl-5 pr-4 pt-4 pb-4 mb-3 bg-white/50">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="w-full max-w-[1000px] mx-auto pl-16 pr-14 py-6">
+        <div className="border border-[var(--border)] p-5 mb-4 bg-white/50">
+          <div className="flex items-center gap-2 mb-4">
             <span className="font-bold text-[12px] text-[var(--text)] uppercase tracking-wider">Pipeline</span>
             {task.currentStep && (
               <span className="text-[11px] text-white bg-[var(--accent)] px-2.5 py-1 font-semibold">
@@ -436,7 +440,7 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
                 return (
                   <div key={char} className="flex items-start gap-2 shrink-0">
                     {i > 0 && <div className="text-[var(--border-strong)] text-[20px] mt-2">→</div>}
-                    <div className={`rounded-lg border-2 pl-5 pr-4 py-2.5 transition-all ${
+                    <div className={`rounded-lg border-2 px-4 py-2.5 transition-all ${
                       isCurrent
                         ? "border-[var(--accent)] bg-[var(--accent-soft)] shadow-sm"
                         : isDone
@@ -470,13 +474,13 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
       <div className="flex-1 flex min-h-0 bg-white/50 border-t border-[var(--border)]">
         {/* Main conversation */}
         <div className="flex-1 overflow-y-auto" id="conversation-scroll">
-          <div className="rail-inset py-5 space-y-4">
+          <div className="w-full max-w-[1000px] mx-auto pl-16 pr-14 py-8 space-y-5">
           {task.log.map((entry) => {
             // System dividers
             if (entry.type === "system" && entry.text.startsWith("---")) {
               const label = entry.text.replace(/^-+\s*/, "").replace(/\s*-+$/, "");
               return (
-                <div key={entry.id} className="flex items-center gap-3 py-3">
+                <div key={entry.id} className="flex items-center gap-3 py-4">
                   <div className="flex-1 h-px bg-[var(--border)]" />
                   <span className="text-[11px] text-[var(--text-dim)] font-semibold uppercase">{label}</span>
                   <div className="flex-1 h-px bg-[var(--border)]" />
@@ -487,7 +491,7 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
             // System messages
             if (entry.type === "system") {
               return (
-                <div key={entry.id} className="pl-5 pr-4 py-2">
+                <div key={entry.id} className="pl-[4.5rem] pr-10 py-2">
                   <p className="text-[13px] text-[var(--text-dim)] italic leading-relaxed">{entry.text}</p>
                 </div>
               );
@@ -496,12 +500,12 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
             // User prompts
             if (entry.type === "user") {
               return (
-                <div key={entry.id} id={`entry-${entry.id}`} className="overflow-hidden border-2 border-[var(--accent)] my-4">
-                  <div className="pl-8 pr-6 py-2 bg-[var(--accent)]">
+                <div key={entry.id} id={`entry-${entry.id}`} className="overflow-hidden border-2 border-[var(--accent)] my-5">
+                  <div className="pl-[4.5rem] pr-10 py-3 bg-[var(--accent)]">
                     <span className="text-[11px] text-white uppercase font-bold tracking-wider">Your Prompt</span>
                   </div>
-                  <div className="pl-10 pr-8 py-3 bg-[var(--accent-soft)] border-t border-[var(--accent)]/25">
-                    <p className="text-[14px] leading-relaxed text-[var(--text)]">{entry.text}</p>
+                  <div className="pl-[4.5rem] pr-12 py-5 bg-white border-t border-[var(--accent)]/25">
+                    <p className="text-[14px] leading-relaxed text-[var(--text)] pl-1">{entry.text}</p>
                   </div>
                 </div>
               );
@@ -510,7 +514,7 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
             // Result
             if (entry.type === "result") {
               return (
-                <div key={entry.id} className="pl-5 pr-4 py-2">
+                <div key={entry.id} className="pl-[4.5rem] pr-10 py-3">
                   <p className="text-[14px] text-emerald-600 font-semibold leading-relaxed">{entry.text}</p>
                 </div>
               );
@@ -527,7 +531,7 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
                 {/* Agent header — always visible, clickable */}
                 <button
                   onClick={() => setSelectedEntryId(isExpanded ? null : entry.id)}
-                  className="w-full flex items-center gap-3 pl-8 pr-6 py-3 cursor-pointer transition-all"
+                  className="w-full flex items-center gap-3 pl-[4.5rem] pr-10 py-4 cursor-pointer transition-all"
                   style={{ background: isExpanded ? theme.bg : theme.light }}
                 >
                   {entry.character && (
@@ -553,7 +557,7 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
 
                 {/* Expanded content */}
                 {isExpanded && (
-                  <div className="pl-10 pr-8 py-4 border-t border-[var(--border)]">
+                  <div className="pl-[4.5rem] pr-12 py-6 border-t border-[var(--border)]">
                     <div className="prose-detail text-[var(--text-mid)]">
                       <ReactMarkdown>{entry.text}</ReactMarkdown>
                     </div>
@@ -569,7 +573,7 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
             const agentName = entry.agent.charAt(0).toUpperCase() + entry.agent.slice(1);
             return (
               <div key={`streaming-${entry.agent}`} className="overflow-hidden border-2 border-[var(--accent)]">
-                <div className="flex items-center gap-3 pl-8 pr-6 py-3" style={{ background: theme.bg }}>
+                <div className="flex items-center gap-3 pl-[4.5rem] pr-10 py-4" style={{ background: theme.bg }}>
                   <div className="p-1.5 bg-white/25" style={{ imageRendering: "pixelated" }}>
                     <PixelSprite character={entry.agent} size={32} />
                   </div>
@@ -579,7 +583,7 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
                   </div>
                   <span className="cursor-blink ml-auto" />
                 </div>
-                <div className="pl-10 pr-8 py-4 border-t border-[var(--border)]">
+                <div className="pl-[4.5rem] pr-12 py-6 border-t border-[var(--border)]">
                   <div className="prose-detail text-[var(--text-mid)]">
                     <ReactMarkdown>{entry.text}</ReactMarkdown>
                   </div>
@@ -595,8 +599,8 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
       {/* Crew Index (sticky TOC) */}
       {task.log.some((e) => e.type === "agent") && (
         <div className="w-[180px] shrink-0 border-l border-[var(--border)] bg-[var(--bg-panel)] overflow-y-auto">
-          <div className="sticky top-0 py-3 pl-4 pr-3">
-            <span className="text-[10px] text-[var(--text-dim)] uppercase tracking-wider block mb-2 pl-1 font-bold">Index</span>
+          <div className="sticky top-0 py-4 px-3">
+            <span className="text-[10px] text-[var(--text-dim)] uppercase tracking-wider block mb-3 px-2 font-bold">Index</span>
             <div className="space-y-0.5">
               {task.log.filter((e) => e.type === "agent" || e.type === "user").map((entry) => {
                 const isActive = entry.id === selectedEntryId;
@@ -609,7 +613,7 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
                         setSelectedEntryId(entry.id);
                         document.getElementById(`entry-${entry.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
                       }}
-                      className={`w-full text-left pl-3.5 pr-2.5 py-1.5 text-[11px] transition-all cursor-pointer ${
+                      className={`w-full text-left px-2.5 py-1.5 text-[11px] transition-all cursor-pointer ${
                         isActive ? "bg-[var(--accent-soft)] text-[var(--accent)] font-semibold" : "text-[var(--text-dim)] hover:bg-[var(--bg-card)]"
                       }`}
                     >
@@ -626,7 +630,7 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
                       setSelectedEntryId(isActive ? null : entry.id);
                       document.getElementById(`entry-${entry.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
                     }}
-                    className={`w-full text-left pl-3.5 pr-2.5 py-1.5 flex items-center gap-2 transition-all cursor-pointer ${
+                    className={`w-full text-left px-2.5 py-1.5 flex items-center gap-2 transition-all cursor-pointer ${
                       isActive ? "bg-[var(--bg-card)]" : "hover:bg-[var(--bg-card)]"
                     }`}
                   >

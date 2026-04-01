@@ -47,17 +47,17 @@ export default function CommandInput({
 
   const rowClass =
     variant === "rail"
-      ? "flex items-center gap-3 pl-8 pr-6 py-2.5 min-h-0"
+      ? "flex items-center gap-4 py-3 min-h-[3.25rem] pl-[4.5rem] pr-12"
       : "flex items-stretch gap-4";
 
   const inputClass =
     variant === "rail"
-      ? "flex-1 bg-transparent text-[14px] leading-relaxed text-[var(--text)] outline-none placeholder:text-[var(--text-mid)] caret-[var(--accent)] min-h-0"
-      : "flex-1 bg-transparent text-[14px] text-[var(--text)] outline-none placeholder:text-[var(--text-dim)] caret-[var(--accent)] py-3";
+      ? "flex-1 min-w-0 bg-transparent text-[14px] leading-relaxed text-[var(--text)] outline-none placeholder:text-[var(--text-mid)] caret-[var(--accent)] pl-8 pr-4 py-2 border-0"
+      : "flex-1 bg-transparent text-[14px] text-[var(--text)] outline-none placeholder:text-[var(--text-dim)] caret-[var(--accent)] py-3 pl-6";
 
   const btnClass =
     variant === "rail"
-      ? "text-[11px] text-white font-bold uppercase tracking-wider bg-[var(--accent)] px-4 py-2 border border-[var(--accent)] hover:opacity-90 transition-all cursor-pointer shrink-0 self-center"
+      ? "text-[11px] text-white font-bold uppercase tracking-wider bg-[var(--accent)] px-5 py-2.5 border border-[var(--accent)] hover:opacity-90 transition-all cursor-pointer shrink-0 self-center"
       : "text-[11px] text-white font-bold uppercase tracking-wider bg-[var(--accent)] px-6 py-3 hover:opacity-90 transition-all cursor-pointer";
 
   return (

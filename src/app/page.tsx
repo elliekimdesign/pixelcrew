@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Agent, Task, LogEntry, CharacterName, CurrentStep } from "@/lib/types";
 import { initialAgents } from "@/lib/mockData";
+import { capitalizeLeadingLetter } from "@/lib/format";
 import { createTask, getAgentPipeline, callAgent, parsePlannerSections, buildParallelPipeline, getTaskCounter, setTaskCounter } from "@/lib/taskEngine";
 import { StreamingEntry } from "@/components/TaskDetail";
 import CommandInput from "@/components/CommandInput";
@@ -448,7 +449,7 @@ export default function Home() {
             ...a,
             state: "working" as const,
             taskId: taskId,
-            taskLabel: `Working on: ${task.title}`,
+            taskLabel: `Working on: ${capitalizeLeadingLetter(task.title)}`,
             progress: 0,
           };
         }
@@ -464,16 +465,16 @@ export default function Home() {
     <>
       <div className="bg-pixel" />
 
-      <div className="h-screen flex flex-col gap-1.5" style={{ padding: '12px' }}>
-        <div className="flex-1 grid min-h-0 gap-3" style={{ gridTemplateColumns: "16rem 1fr", gridTemplateRows: "auto 1fr" }}>
+      <div className="h-screen flex flex-col gap-2" style={{ padding: '12px' }}>
+        <div className="flex-1 grid min-h-0 gap-4" style={{ gridTemplateColumns: "16rem 1fr", gridTemplateRows: "auto 1fr" }}>
           {/* Top-left: Logo */}
           <div className="flex items-start">
             <AgentSidebar />
           </div>
 
           {/* Top-right: Crew team section */}
-          <div className="bg-[var(--bg-card)] border border-[var(--border)] ui-panel-inset py-3">
-            <div className="flex items-center justify-between mb-2">
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] px-5 py-4">
+            <div className="flex items-center justify-between mb-3">
               <span className="font-bold text-[11px] text-[var(--text-mid)] uppercase tracking-wider">Crew</span>
               <span className="text-[11px] text-[var(--text-dim)]">
                 {agents.filter((a) => a.state === "working").length} active
@@ -485,7 +486,7 @@ export default function Home() {
                 return (
                   <div
                     key={agent.id}
-                    className={`flex items-center gap-2 px-3 py-1.5 transition-all duration-200 border ${
+                    className={`flex items-center gap-2 px-3 py-2 transition-all duration-200 border ${
                       isWorking ? "bg-[var(--accent-soft)] border-[var(--accent)]" : "bg-[var(--bg)] border-[var(--border)] hover:bg-[var(--bg-panel)]"
                     }`}
                   >
@@ -506,7 +507,7 @@ export default function Home() {
 
           {/* Bottom-left: Task list */}
           <div className="flex flex-col min-h-0">
-            <div className="mb-2 ui-tasks-header-inset">
+            <div className="mb-3 px-2">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-[11px] text-[var(--text-mid)] uppercase tracking-widest">Tasks</span>
                 <span className="text-[11px] text-[var(--text-dim)] font-medium">{tasks.length}</span>
@@ -536,12 +537,12 @@ export default function Home() {
                   />
                 </div>
               ) : (
-                <div className="flex-1 flex items-center justify-center pl-6 pr-6">
+                <div className="flex-1 flex items-center justify-center">
                   <p className="text-[13px] text-[var(--text-dim)]">Select a task to see details</p>
                 </div>
               )
             ) : (
-              <div className="flex-1 flex items-center justify-center pl-6 pr-6">
+              <div className="flex-1 flex items-center justify-center">
                 <div className="text-center space-y-4">
                   <div className="flex justify-center gap-2 mb-3">
                     {(["mayor", "planner", "researcher", "coder", "fixer", "reviewer", "monitor"] as const).map((char) => (
@@ -570,15 +571,15 @@ export default function Home() {
         </div>
 
         {/* Bottom prompt — same rail as chat; no full-width white panel (show page bg) */}
-        <div className="grid shrink-0 gap-3 min-w-0" style={{ gridTemplateColumns: "16rem 1fr" }}>
+        <div className="grid shrink-0 gap-4 min-w-0" style={{ gridTemplateColumns: "16rem 1fr" }}>
           <div className="min-w-0" aria-hidden />
           <div className="min-w-0">
-            <div className="rail-inset py-1">
+            <div className="w-full max-w-[1000px] mx-auto pl-16 pr-14 py-1">
               <div className="overflow-hidden border-2 border-[var(--accent)]">
-                <div className="pl-8 pr-6 py-2 bg-[var(--accent)]">
+                <div className="pl-[4.5rem] pr-10 py-3 bg-[var(--accent)]">
                   <span className="text-[11px] text-white uppercase font-bold tracking-wider">Your Prompt</span>
                 </div>
-                <div className="bg-[var(--accent-soft)] border-t border-[var(--accent)]/25">
+                <div className="bg-white border-t border-[var(--accent)]/25">
                   <CommandInput onSubmit={handleNewTask} disabled={false} variant="rail" />
                 </div>
               </div>
