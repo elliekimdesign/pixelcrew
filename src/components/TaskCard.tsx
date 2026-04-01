@@ -22,37 +22,29 @@ export default function TaskCard({ task, isSelected, onClick }: Props) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left rounded-lg cursor-pointer transition-all duration-150 overflow-hidden ${
+      className={`w-full text-left cursor-pointer transition-all duration-150 border-l-[6px] border-b border-b-[var(--border)]/30 last:border-b-0 ${
         isSelected
-          ? "bg-white ring-1 ring-emerald-400/40 shadow-sm"
-          : "bg-white/40 hover:bg-white/70"
+          ? "border-l-[var(--accent)] bg-white/50"
+          : "border-l-[var(--border-strong)] bg-white/20 hover:border-l-[var(--accent)]/60 hover:bg-white/40"
       }`}
     >
-      <div className="flex items-center gap-2.5 px-3 py-2.5">
-        {/* Lead agent sprite */}
-        <div
-          className="shrink-0 rounded-md p-1 bg-[var(--bg)]"
-          style={{ imageRendering: "pixelated" }}
-        >
-          <PixelSprite character={leadAgent} size={20} />
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <p className={`text-[13px] truncate leading-tight ${isSelected ? "text-[var(--text)] font-medium" : "text-[var(--text-mid)]"}`}>
-            {task.title}
-          </p>
-          <span className={`text-[10px] font-semibold tracking-wider ${status.text}`}>
+      <div className="pl-6 pr-5 py-2.5">
+        <p className={`text-[14px] truncate leading-tight mb-1 ${isSelected ? "text-[var(--text)] font-semibold" : "text-[var(--text-mid)]"}`}>
+          {task.title}
+        </p>
+        <div className="flex items-center gap-2">
+          <span className={`text-[10px] font-bold tracking-wider uppercase ${status.text}`}>
             {status.label}
           </span>
+          {task.status === "running" && (
+            <div className="flex-1 h-1 bg-[var(--border)] rounded-full overflow-hidden max-w-[80px]">
+              <div
+                className="h-full bg-[var(--accent)] transition-all duration-500"
+                style={{ width: `${Math.max(task.progress, 3)}%` }}
+              />
+            </div>
+          )}
         </div>
-      </div>
-
-      {/* XP bar */}
-      <div className="h-[3px] bg-[var(--border)]">
-        <div
-          className={`h-full ${status.barColor} transition-all duration-500 ${task.status === "running" ? "loading-bar-subtle" : ""}`}
-          style={{ width: `${task.status === "done" ? 100 : Math.max(task.progress, 3)}%` }}
-        />
       </div>
     </button>
   );

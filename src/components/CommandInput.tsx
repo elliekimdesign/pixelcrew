@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react";
 interface Props {
   onSubmit: (message: string) => void;
   disabled: boolean;
-  variant?: "global" | "local";
+  variant?: "global" | "local" | "rail";
   placeholder?: string;
   buttonLabel?: string;
 }
@@ -22,11 +22,11 @@ export default function CommandInput({
   const ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (variant === "global") ref.current?.focus();
+    if (variant === "global" || variant === "rail") ref.current?.focus();
   }, [variant]);
 
   useEffect(() => {
-    if (variant !== "global") return;
+    if (variant !== "global" && variant !== "rail") return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "/" && document.activeElement !== ref.current) {
         e.preventDefault();
@@ -45,9 +45,24 @@ export default function CommandInput({
     ref.current?.focus();
   };
 
+  const rowClass =
+    variant === "rail"
+      ? "flex items-center gap-3 pl-8 pr-6 py-2.5 min-h-0"
+      : "flex items-stretch gap-4";
+
+  const inputClass =
+    variant === "rail"
+      ? "flex-1 bg-transparent text-[14px] leading-relaxed text-[var(--text)] outline-none placeholder:text-[var(--text-mid)] caret-[var(--accent)] min-h-0"
+      : "flex-1 bg-transparent text-[14px] text-[var(--text)] outline-none placeholder:text-[var(--text-dim)] caret-[var(--accent)] py-3";
+
+  const btnClass =
+    variant === "rail"
+      ? "text-[11px] text-white font-bold uppercase tracking-wider bg-[var(--accent)] px-4 py-2 border border-[var(--accent)] hover:opacity-90 transition-all cursor-pointer shrink-0 self-center"
+      : "text-[11px] text-white font-bold uppercase tracking-wider bg-[var(--accent)] px-6 py-3 hover:opacity-90 transition-all cursor-pointer";
+
   return (
     <form onSubmit={handleSubmit} className="w-full">
-      <div className="flex items-center gap-4">
+      <div className={rowClass}>
         <input
           ref={ref}
           type="text"
@@ -56,17 +71,20 @@ export default function CommandInput({
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           placeholder={placeholder || "What should your crew work on?"}
-          className="flex-1 bg-transparent text-[15px] text-[var(--text)] outline-none placeholder:text-[var(--text-dim)] caret-[var(--accent)]"
+          className={inputClass}
         />
         {input.trim() ? (
-          <button
-            type="submit"
-            className="text-[13px] text-white font-medium bg-[var(--accent)] px-5 py-2 rounded-full hover:opacity-90 transition-all shadow-sm cursor-pointer"
-          >
-            {buttonLabel || "Send"}
+          <button type="submit" className={btnClass}>
+            {buttonLabel || "Deploy"}
           </button>
         ) : (
-          <kbd className="text-[11px] text-[var(--text-dim)] bg-[var(--bg)] rounded-lg px-2.5 py-1">
+          <kbd
+            className={
+              variant === "rail"
+                ? "text-[10px] text-[var(--accent)] bg-white/60 px-2 py-1 shrink-0 self-center font-semibold"
+                : "text-[10px] text-[var(--text-dim)] bg-[var(--bg)] px-2 py-1 self-center"
+            }
+          >
             /
           </kbd>
         )}

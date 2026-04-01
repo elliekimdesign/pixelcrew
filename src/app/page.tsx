@@ -464,18 +464,18 @@ export default function Home() {
     <>
       <div className="bg-pixel" />
 
-      <div className="h-screen flex flex-col px-8 py-5 gap-4">
-        <div className="flex-1 grid min-h-0 gap-4" style={{ gridTemplateColumns: "16rem 1fr", gridTemplateRows: "auto 1fr" }}>
+      <div className="h-screen flex flex-col gap-1.5" style={{ padding: '12px' }}>
+        <div className="flex-1 grid min-h-0 gap-3" style={{ gridTemplateColumns: "16rem 1fr", gridTemplateRows: "auto 1fr" }}>
           {/* Top-left: Logo */}
-          <div className="flex items-end pb-1">
+          <div className="flex items-start">
             <AgentSidebar />
           </div>
 
           {/* Top-right: Crew team section */}
-          <div className="bg-[var(--bg-card)] rounded-2xl shadow-sm px-5 py-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-semibold text-[13px] text-[var(--text-mid)] uppercase tracking-wider">Crew</span>
-              <span className="text-[12px] text-[var(--text-dim)]">
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] ui-panel-inset py-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-bold text-[11px] text-[var(--text-mid)] uppercase tracking-wider">Crew</span>
+              <span className="text-[11px] text-[var(--text-dim)]">
                 {agents.filter((a) => a.state === "working").length} active
               </span>
             </div>
@@ -485,16 +485,16 @@ export default function Home() {
                 return (
                   <div
                     key={agent.id}
-                    className={`flex items-center gap-2 rounded-xl px-3 py-2 transition-all duration-200 ${
-                      isWorking ? "bg-[var(--accent-soft)] shadow-sm" : "bg-[var(--bg)] hover:bg-[var(--bg-panel)]"
+                    className={`flex items-center gap-2 px-3 py-1.5 transition-all duration-200 border ${
+                      isWorking ? "bg-[var(--accent-soft)] border-[var(--accent)]" : "bg-[var(--bg)] border-[var(--border)] hover:bg-[var(--bg-panel)]"
                     }`}
                   >
                     <div className="shrink-0" style={{ imageRendering: "pixelated" }}>
-                      <PixelSprite character={agent.character} size={22} />
+                      <PixelSprite character={agent.character} size={20} />
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[12px] text-[var(--text)] font-medium block leading-tight">{agent.name}</span>
-                      <span className={`text-[10px] ${isWorking ? "text-[var(--accent)]" : "text-[var(--text-dim)]"}`}>
+                      <span className="text-[11px] text-[var(--text)] font-medium block leading-tight">{agent.name}</span>
+                      <span className={`text-[10px] ${isWorking ? "text-[var(--accent)]" : "text-[var(--text-dim)]"} mt-0.5 block`}>
                         {agent.state === "working" ? "Active" : agent.state === "done" ? "Done" : agent.state === "stuck" ? "Error" : "Idle"}
                       </span>
                     </div>
@@ -505,14 +505,14 @@ export default function Home() {
           </div>
 
           {/* Bottom-left: Task list */}
-          <div className="flex flex-col bg-[var(--bg-card)] rounded-2xl shadow-sm overflow-hidden min-h-0">
-            <div className="px-4 py-3">
+          <div className="flex flex-col min-h-0">
+            <div className="mb-2 ui-tasks-header-inset">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-[13px] text-[var(--text-mid)] uppercase tracking-wider">Tasks</span>
-                <span className="text-[12px] text-[var(--text-dim)]">{tasks.length}</span>
+                <span className="font-bold text-[11px] text-[var(--text-mid)] uppercase tracking-widest">Tasks</span>
+                <span className="text-[11px] text-[var(--text-dim)] font-medium">{tasks.length}</span>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto px-2 pb-3 space-y-1">
+            <div className="flex-1 overflow-y-auto space-y-1">
               {tasks.map((task) => (
                 <TaskCard
                   key={task.id}
@@ -525,7 +525,7 @@ export default function Home() {
           </div>
 
           {/* Bottom-right: Task detail / chat */}
-          <div className="flex flex-col min-h-0 bg-[var(--bg-card)] rounded-2xl shadow-sm overflow-hidden">
+          <div className="flex flex-col min-h-0 bg-[var(--bg-card)] border border-[var(--border)] overflow-hidden">
             {tasks.length > 0 ? (
               selectedTask ? (
                 <div className="flex-1 min-h-0 overflow-hidden">
@@ -536,28 +536,28 @@ export default function Home() {
                   />
                 </div>
               ) : (
-                <div className="flex-1 flex items-center justify-center">
-                  <p className="text-[14px] text-[var(--text-dim)]">Select a task to see details</p>
+                <div className="flex-1 flex items-center justify-center pl-6 pr-6">
+                  <p className="text-[13px] text-[var(--text-dim)]">Select a task to see details</p>
                 </div>
               )
             ) : (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center space-y-5">
-                  <div className="flex justify-center gap-2 mb-4">
+              <div className="flex-1 flex items-center justify-center pl-6 pr-6">
+                <div className="text-center space-y-4">
+                  <div className="flex justify-center gap-2 mb-3">
                     {(["mayor", "planner", "researcher", "coder", "fixer", "reviewer", "monitor"] as const).map((char) => (
-                      <div key={char} className="bg-[var(--bg)] rounded-xl p-2.5" style={{ imageRendering: "pixelated" }}>
-                        <PixelSprite character={char} size={36} />
+                      <div key={char} className="bg-[var(--bg)] p-2" style={{ imageRendering: "pixelated" }}>
+                        <PixelSprite character={char} size={32} />
                       </div>
                     ))}
                   </div>
-                  <p className="text-[16px] font-semibold text-[var(--text)]">Your crew is ready</p>
-                  <p className="text-[14px] text-[var(--text-dim)]">Type a mission below to get started</p>
-                  <div className="flex flex-wrap justify-center gap-2 mt-4 max-w-md mx-auto">
+                  <p className="text-[14px] font-semibold text-[var(--text)]">Your crew is ready</p>
+                  <p className="text-[13px] text-[var(--text-dim)]">Type a mission below to get started</p>
+                  <div className="flex flex-wrap justify-center gap-2 mt-3 max-w-md mx-auto">
                     {["build a landing page", "fix the login bug", "design a dashboard", "review the API"].map((example) => (
                       <button
                         key={example}
                         onClick={() => handleNewTask(example)}
-                        className="text-[13px] text-[var(--accent)] bg-[var(--accent-soft)] rounded-full px-4 py-2 hover:shadow-sm transition-all cursor-pointer"
+                        className="text-[12px] text-[var(--accent)] bg-[var(--accent-soft)] px-3 py-1.5 hover:opacity-80 transition-all cursor-pointer"
                       >
                         {example}
                       </button>
@@ -569,9 +569,21 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ═══ BOTTOM: Prompt input ═══ */}
-        <div className="shrink-0 bg-[var(--bg-card)] rounded-2xl shadow-sm px-5 py-3">
-          <CommandInput onSubmit={handleNewTask} disabled={false} />
+        {/* Bottom prompt — same rail as chat; no full-width white panel (show page bg) */}
+        <div className="grid shrink-0 gap-3 min-w-0" style={{ gridTemplateColumns: "16rem 1fr" }}>
+          <div className="min-w-0" aria-hidden />
+          <div className="min-w-0">
+            <div className="rail-inset py-1">
+              <div className="overflow-hidden border-2 border-[var(--accent)]">
+                <div className="pl-8 pr-6 py-2 bg-[var(--accent)]">
+                  <span className="text-[11px] text-white uppercase font-bold tracking-wider">Your Prompt</span>
+                </div>
+                <div className="bg-[var(--accent-soft)] border-t border-[var(--accent)]/25">
+                  <CommandInput onSubmit={handleNewTask} disabled={false} variant="rail" />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </>
