@@ -414,7 +414,7 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
       <div className="px-16 py-6 border-b-2 border-[var(--border-strong)] bg-[var(--bg-panel)]">
         <div className="rounded-lg border-2 border-[var(--border-strong)] p-5 mb-4 bg-white">
           <div className="flex items-center gap-2 mb-4">
-            <span className="font-pixel text-[16px] text-[var(--text)] uppercase">Pipeline</span>
+            <span className="font-semibold text-[14px] tracking-wide text-[var(--text)] uppercase">Pipeline</span>
             {task.currentStep && (
               <span className="text-[12px] text-white bg-[var(--accent)] px-2.5 py-1 rounded-md font-semibold">
                 Step {task.currentStep.index + 1}/{task.currentStep.total}
@@ -650,12 +650,6 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
       )}
       </div>
 
-      {/* Follow-up input */}
-      {onFollowUp && (task.status === "done" || task.status === "stuck") && (
-        <div className="shrink-0 px-16 py-6 border-t-2 border-[var(--border-strong)] bg-[var(--bg-panel)]">
-          <InlineReply compact placeholder="Send a follow-up..." onSubmit={(msg) => onFollowUp(task.id, msg)} />
-        </div>
-      )}
     </div>
   );
 }

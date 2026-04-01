@@ -9,60 +9,51 @@ interface Props {
   onClick: () => void;
 }
 
+const statusBadge = {
+  running: { label: "IN PROGRESS", text: "text-[var(--accent)]", barColor: "bg-[var(--accent)]" },
+  done: { label: "COMPLETE", text: "text-[var(--text-dim)]", barColor: "bg-[var(--text-dim)]" },
+  stuck: { label: "FAILED", text: "text-red-500", barColor: "bg-red-400" },
+} as const;
+
 export default function TaskCard({ task, isSelected, onClick }: Props) {
-  const barClass = task.status === "done" ? "bar-done" : task.status === "stuck" ? "bar-stuck" : "bar-run";
-
-  const statusLine = task.status === "done"
-    ? "Done"
-    : task.status === "stuck"
-    ? task.currentStep ? `Stuck at ${task.currentStep.agent}` : "Stuck"
-    : task.currentStep ? `${task.currentStep.agent}` : "Starting...";
-
-  const statusColor = task.status === "done"
-    ? "text-emerald-600"
-    : task.status === "stuck"
-    ? "text-red-500"
-    : "text-emerald-600";
+  const status = statusBadge[task.status] || statusBadge.running;
+  const leadAgent = task.agents[0];
 
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-5 py-3.5 rounded-lg cursor-pointer transition-all duration-150 border ${
+      className={`w-full text-left rounded-lg cursor-pointer transition-all duration-150 overflow-hidden ${
         isSelected
-          ? "border-[var(--accent)] bg-[var(--bg-card)] shadow-sm"
-          : "border-transparent hover:bg-[var(--bg-card)]/50"
+          ? "bg-white ring-1 ring-emerald-400/40 shadow-sm"
+          : "bg-white/40 hover:bg-white/70"
       }`}
     >
-      <p className="text-[14px] text-[var(--text)] font-medium truncate mb-2">{task.title}</p>
-      
-      {/* Agent badges */}
-      <div className="flex items-center gap-1 mb-2.5 flex-wrap">
-        {task.agents.map((char) => (
-          <div 
-            key={char} 
-            className="rounded-md p-0.5 border border-[var(--border)] bg-[var(--bg-panel)]" 
-            style={{ imageRendering: "pixelated" }}
-            title={char.charAt(0).toUpperCase() + char.slice(1)}
-          >
-            <PixelSprite character={char} size={14} />
-          </div>
-        ))}
-        <span className={`text-[12px] font-medium ml-1 ${statusColor}`}>{statusLine}</span>
+      <div className="flex items-center gap-2.5 px-3 py-2.5">
+        {/* Lead agent sprite */}
+        <div
+          className="shrink-0 rounded-md p-1 bg-[var(--bg)]"
+          style={{ imageRendering: "pixelated" }}
+        >
+          <PixelSprite character={leadAgent} size={20} />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className={`text-[13px] truncate leading-tight ${isSelected ? "text-[var(--text)] font-medium" : "text-[var(--text-mid)]"}`}>
+            {task.title}
+          </p>
+          <span className={`text-[10px] font-semibold tracking-wider ${status.text}`}>
+            {status.label}
+          </span>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2 mb-2">
-        {task.status !== "done" && (
-          <span className="text-[12px] text-[var(--text-dim)] ml-auto">{task.progress}%</span>
-        )}
+      {/* XP bar */}
+      <div className="h-[3px] bg-[var(--border)]">
+        <div
+          className={`h-full ${status.barColor} transition-all duration-500 ${task.status === "running" ? "loading-bar-subtle" : ""}`}
+          style={{ width: `${task.status === "done" ? 100 : Math.max(task.progress, 3)}%` }}
+        />
       </div>
-      {task.status !== "done" && (
-        <div className="px-bar">
-          <div
-            className={`px-bar-fill ${barClass} ${task.status === "running" ? "loading-bar-subtle" : ""}`}
-            style={{ width: `${Math.max(task.progress, task.status === "running" ? 3 : 0)}%` }}
-          />
-        </div>
-      )}
     </button>
   );
 }
