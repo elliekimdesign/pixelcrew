@@ -154,9 +154,10 @@ export default function PixelSprite({ character, size = 36, className = "" }: Pr
     <svg
       width={size}
       height={size}
-      viewBox={`0 0 ${size} ${size}`}
+      viewBox="0 0 12 12"
       className={className}
       style={{ imageRendering: "pixelated" }}
+      shapeRendering="crispEdges"
     >
       {grid.map((row, y) =>
         row.split("").map((cell, x) => {
@@ -165,10 +166,10 @@ export default function PixelSprite({ character, size = 36, className = "" }: Pr
           return (
             <rect
               key={`${x}-${y}`}
-              x={x * cellSize}
-              y={y * cellSize}
-              width={cellSize + 0.5}
-              height={cellSize + 0.5}
+              x={x}
+              y={y}
+              width={1}
+              height={1}
               fill={color}
             />
           );

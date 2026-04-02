@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { capitalizeLeadingLetter } from "@/lib/format";
-import { instrumentSans } from "@/lib/fonts";
+
 import { Task, LogEntry, CharacterName, PlannerSection } from "@/lib/types";
 import PixelSprite from "./PixelSprite";
 import ReactMarkdown from "react-markdown";
@@ -395,7 +395,7 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
       {/* Header — same horizontal rail as agent cards + thread */}
       <div className="border-b border-[var(--border)] bg-[var(--bg-panel)]">
         <div className="w-full max-w-[1000px] mx-auto pl-16 pr-14 py-5 flex items-center gap-4">
-          <span className={`${instrumentSans.className} text-[15px] text-[var(--text)] font-semibold truncate flex-1`}>
+          <span className={`text-[14px] text-[var(--text)] font-semibold truncate flex-1`}>
             {capitalizeLeadingLetter(task.title)}
           </span>
           <div className="flex items-center gap-2 shrink-0">

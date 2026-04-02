@@ -1,7 +1,7 @@
 "use client";
 
 import { capitalizeLeadingLetter } from "@/lib/format";
-import { instrumentSans } from "@/lib/fonts";
+
 import { Task } from "@/lib/types";
 
 interface Props {
@@ -28,9 +28,9 @@ export default function TaskCard({ task, isSelected, onClick }: Props) {
           : "border-l-[var(--border-strong)] bg-white/20 hover:border-l-[var(--accent)]/60 hover:bg-white/40"
       }`}
     >
-      <div className="pl-8 pr-6 py-3.5">
+      <div className="pl-5 pr-6 py-3.5 ml-3">
         <p
-          className={`${instrumentSans.className} text-[14px] truncate leading-tight mb-2 ${isSelected ? "text-[var(--text)] font-semibold" : "text-[var(--text-mid)]"}`}
+          className={`text-[13px] truncate leading-tight mb-2 ${isSelected ? "text-[var(--text)] font-semibold" : "text-[var(--text-mid)]"}`}
         >
           {capitalizeLeadingLetter(task.title)}
         </p>

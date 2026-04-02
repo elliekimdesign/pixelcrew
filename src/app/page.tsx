@@ -12,6 +12,16 @@ import TaskCard from "@/components/TaskCard";
 import TaskDetail from "@/components/TaskDetail";
 import PixelSprite from "@/components/PixelSprite";
 
+const crewColors: Record<string, { bg: string; light: string }> = {
+  mayor:      { bg: "#5b6cf0", light: "#eef0ff" },
+  planner:    { bg: "#8b5cf6", light: "#f3f0ff" },
+  researcher: { bg: "#f59e0b", light: "#fefce8" },
+  coder:      { bg: "#06b6d4", light: "#ecfeff" },
+  fixer:      { bg: "#f97316", light: "#fff7ed" },
+  reviewer:   { bg: "#a855f7", light: "#faf5ff" },
+  monitor:    { bg: "#22c55e", light: "#f0fdf4" },
+};
+
 export default function Home() {
   const [agents, setAgents] = useState<Agent[]>(initialAgents);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -474,30 +484,38 @@ export default function Home() {
 
           {/* Top-right: Crew team section */}
           <div className="bg-[var(--bg-card)] border border-[var(--border)] px-5 py-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-bold text-[11px] text-[var(--text-mid)] uppercase tracking-wider">Crew</span>
-              <span className="text-[11px] text-[var(--text-dim)]">
-                {agents.filter((a) => a.state === "working").length} active
-              </span>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-5 flex-wrap">
               {agents.map((agent) => {
                 const isWorking = agent.state === "working";
+                const colors = crewColors[agent.character] || crewColors.mayor;
                 return (
                   <div
                     key={agent.id}
-                    className={`flex items-center gap-2 px-3 py-2 transition-all duration-200 border ${
-                      isWorking ? "bg-[var(--accent-soft)] border-[var(--accent)]" : "bg-[var(--bg)] border-[var(--border)] hover:bg-[var(--bg-panel)]"
-                    }`}
+                    className="flex items-center gap-2 transition-all duration-200"
                   >
-                    <div className="shrink-0" style={{ imageRendering: "pixelated" }}>
-                      <PixelSprite character={agent.character} size={20} />
+                    <div
+                      className={`rounded-lg p-1 ${isWorking ? "shadow-md" : ""}`}
+                      style={{
+                        background: isWorking ? colors.light : "var(--bg)",
+                        boxShadow: isWorking ? `0 0 10px ${colors.bg}30` : undefined,
+                        imageRendering: "pixelated",
+                      }}
+                    >
+                      <PixelSprite character={agent.character} size={28} />
                     </div>
-                    <div className="min-w-0">
+                    <div>
                       <span className="text-[11px] text-[var(--text)] font-medium block leading-tight">{agent.name}</span>
-                      <span className={`text-[10px] ${isWorking ? "text-[var(--accent)]" : "text-[var(--text-dim)]"} mt-0.5 block`}>
-                        {agent.state === "working" ? "Active" : agent.state === "done" ? "Done" : agent.state === "stuck" ? "Error" : "Idle"}
-                      </span>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <div
+                          className={`w-[4px] h-[4px] rounded-full ${isWorking ? "blink" : ""}`}
+                          style={{ background: isWorking ? colors.bg : "var(--clr-idle)" }}
+                        />
+                        <span className={`text-[9px] uppercase tracking-wider font-semibold ${isWorking ? "" : "text-[var(--text-dim)]"}`}
+                          style={isWorking ? { color: colors.bg } : undefined}
+                        >
+                          {agent.state === "working" ? "Active" : agent.state === "done" ? "Done" : agent.state === "stuck" ? "Error" : "Idle"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { inter, jetbrainsMono, instrumentSans } from "@/lib/fonts";
+import { inter, jetbrainsMono, spaceGrotesk } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${jetbrainsMono.variable} ${instrumentSans.variable}`}>{children}</body>
+      <body className={`${inter.className} ${inter.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable}`}>{children}</body>
     </html>
   );
 }

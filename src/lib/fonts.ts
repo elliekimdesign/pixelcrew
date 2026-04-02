@@ -1,4 +1,4 @@
-import { Instrument_Sans, Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 
 export const inter = Inter({
   subsets: ["latin"],
@@ -10,8 +10,8 @@ export const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
 });
 
-export const instrumentSans = Instrument_Sans({
+export const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-  variable: "--font-task-title",
+  variable: "--font-heading",
   weight: ["400", "500", "600", "700"],
 });
