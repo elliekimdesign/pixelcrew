@@ -18,6 +18,9 @@ interface Props {
   task: Task;
   streamingEntries?: Record<string, StreamingEntry>;
   onFollowUp?: (taskId: string, message: string) => void;
+  focusAgentChars?: CharacterName[];
+  tintColor?: string;
+  onAgentFocus?: (char: CharacterName | null) => void;
 }
 
 // ── Summarize helper ────────────────────────────────────────────────
@@ -125,7 +128,7 @@ function PlanDiagram({ sections, taskAgents, currentStepIndex }: { sections: Pla
                       <div style={{ imageRendering: "pixelated" }}>
                         <PixelSprite character={agent.character} size={18} />
                       </div>
-                      <span className={`text-[12px] whitespace-nowrap ${
+                      <span className={`text-[14px] whitespace-nowrap ${
                         isCurrent ? "text-[var(--accent)] font-semibold" : isDone ? "text-[var(--text-dim)] line-through" : "text-[var(--text-mid)]"
                       }`}>
                         {agent.name}
@@ -361,7 +364,7 @@ function StreamingSummary({ entry }: { entry: StreamingEntry }) {
 
 // ── Main component ──────────────────────────────────────────────────
 
-export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props) {
+export default function TaskDetail({ task, streamingEntries, onFollowUp, focusAgentChars = [], tintColor, onAgentFocus }: Props) {
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -376,6 +379,20 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
       setSelectedEntryId(agentEntries[agentEntries.length - 1].id);
     }
   }, [task.log]);
+
+  // When an agent tab is toggled, scroll to that agent's last log entry (only if single focus)
+  useEffect(() => {
+    if (focusAgentChars.length !== 1) return;
+    const char = focusAgentChars[0];
+    const agentEntries = task.log.filter((e) => e.type === "agent" && e.character === char);
+    if (agentEntries.length > 0) {
+      const last = agentEntries[agentEntries.length - 1];
+      setSelectedEntryId(last.id);
+      setTimeout(() => {
+        document.getElementById(`entry-${last.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 50);
+    }
+  }, [focusAgentChars, task.log]);
 
   const isStreaming = activeEntries.length > 0;
   const step = task.currentStep;
@@ -392,89 +409,131 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
 
   return (
     <div className="flex-1 flex flex-col min-h-0 h-full">
-      {/* Header — same horizontal rail as agent cards + thread */}
+      {/* Header — agent tabs + inline progress */}
       <div className="border-b border-[var(--border)] bg-[var(--bg-panel)]">
-        <div className="w-full max-w-[1000px] mx-auto pl-16 pr-14 py-5 flex items-center gap-4">
-          <span className={`text-[14px] text-[var(--text)] font-semibold truncate flex-1`}>
-            {capitalizeLeadingLetter(task.title)}
-          </span>
-          <div className="flex items-center gap-2 shrink-0">
-            {task.agents.map((char) => (
-              <div key={char} className="p-1.5 border border-[var(--border)] bg-[var(--bg-card)]" style={{ imageRendering: "pixelated" }}>
-                <PixelSprite character={char} size={20} />
+        <div className="flex items-stretch">
+          {task.agents.map((char, i) => {
+            const isActive = focusAgentChars.includes(char);
+            const isCurrent = task.status === "running" && task.currentStep?.agent?.toLowerCase().includes(char);
+            const isDone = task.status === "done" || (!isCurrent && task.log.some((e) => e.type === "agent" && e.character === char));
+            const theme = agentTheme[char] || agentTheme.mayor;
+
+            let bg = "var(--bg-panel)";
+            if (isActive) bg = theme.bg;
+            else if (isCurrent) bg = "var(--accent-soft)";
+            else if (isDone) bg = "var(--bg)";
+
+            let textColor = "var(--text-mid)";
+            if (isActive) textColor = "#ffffff";
+            else if (isCurrent) textColor = "var(--accent)";
+            else if (isDone) textColor = "var(--text-dim)";
+
+            return (
+              <button
+                key={char}
+                onClick={() => onAgentFocus?.(char)}
+                style={{
+                  position: "relative",
+                  zIndex: isActive ? task.agents.length + 1 : isCurrent ? task.agents.length : task.agents.length - i,
+                  marginRight: "-10px",
+                  padding: "6px 28px 6px 20px",
+                  background: bg,
+                  color: textColor,
+                  clipPath: "polygon(0 0, calc(100% - 7px) 0, 100% 50%, calc(100% - 7px) 100%, 0 100%)",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  transition: "background 0.15s",
+                  opacity: isDone && !isActive && !isCurrent ? 0.6 : 1,
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <div style={{ imageRendering: "pixelated" }}>
+                    <PixelSprite character={char} size={16} />
+                  </div>
+                  <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: isActive || isCurrent ? 600 : 400 }}>
+                    {char.charAt(0).toUpperCase() + char.slice(1)}
+                  </span>
+                  {isCurrent && <span className="w-1.5 h-1.5 rounded-full blink shrink-0" style={{ background: "var(--accent)" }} />}
+                </div>
+              </button>
+            );
+          })}
+
+          {/* Spacer + right-side progress */}
+          <div className="flex-1" />
+          <div className="flex items-center gap-3 px-5 shrink-0">
+            {task.status === "running" && step && (
+              <span className="text-[10px] text-[var(--text-dim)] uppercase tracking-wide whitespace-nowrap">
+                {step.index + 1} / {step.total}
+              </span>
+            )}
+            <div style={{ width: 80 }}>
+              <div className="px-bar">
+                <div
+                  className={`px-bar-fill ${barClass} ${task.status === "running" ? "loading-bar" : ""}`}
+                  style={{ width: `${displayProgress}%` }}
+                />
               </div>
-            ))}
-            <span className={`text-[11px] px-3 py-1.5 ml-1 font-semibold uppercase ${badgeClass}`}>
+            </div>
+            <span className={`text-[11px] px-3 py-1.5 font-semibold uppercase ${badgeClass}`}>
               {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Pipeline diagram + Progress */}
-      {/* Pipeline section */}
-      <div className="border-b border-[var(--border)] bg-[var(--bg-panel)]">
-        <div className="w-full max-w-[1000px] mx-auto pl-16 pr-14 py-6">
-        <div className="border border-[var(--border)] p-5 mb-4 bg-white/50">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="font-bold text-[12px] text-[var(--text)] uppercase tracking-wider">Pipeline</span>
-            {task.currentStep && (
-              <span className="text-[11px] text-white bg-[var(--accent)] px-2.5 py-1 font-semibold">
-                Step {task.currentStep.index + 1}/{task.currentStep.total}
-              </span>
-            )}
-          </div>
-          {task.planSections ? (
-            <PlanDiagram
-              sections={task.planSections}
-              taskAgents={task.agents}
-              currentStepIndex={task.currentStep?.index ?? (task.status === "done" ? 999 : -1)}
-            />
-          ) : (
-            <div className="flex items-start gap-2 overflow-x-auto pb-2">
-              {task.agents.map((char, i) => {
-                const agentName = char.charAt(0).toUpperCase() + char.slice(1);
-                const isDone = task.status === "done" || (task.currentStep && task.currentStep.index > i);
-                const isCurrent = task.currentStep && task.currentStep.index === i;
-                
-                return (
-                  <div key={char} className="flex items-start gap-2 shrink-0">
-                    {i > 0 && <div className="text-[var(--border-strong)] text-[20px] mt-2">→</div>}
-                    <div className={`rounded-lg border-2 px-4 py-2.5 transition-all ${
-                      isCurrent
-                        ? "border-[var(--accent)] bg-[var(--accent-soft)] shadow-sm"
-                        : isDone
-                        ? "border-[var(--border)] bg-[var(--bg)] opacity-50"
-                        : "border-[var(--border)] bg-[var(--bg-panel)]"
-                    }`}>
-                      <div className="flex items-center gap-2">
-                        <div style={{ imageRendering: "pixelated" }}>
-                          <PixelSprite character={char} size={20} />
-                        </div>
-                        <span className={`text-[14px] whitespace-nowrap ${
-                          isCurrent ? "text-[var(--accent)] font-semibold" : isDone ? "text-[var(--text-dim)] line-through" : "text-[var(--text-mid)]"
-                        }`}>
-                          {agentName}
-                        </span>
+      {/* Conversation */}
+      {focusAgentChars.length > 0 ? (
+        /* ── Multi-pane split view ── */
+        <div className="flex-1 flex flex-row min-h-0 bg-white/50 border-t border-[var(--border)]">
+          {focusAgentChars.map((char, paneIdx) => {
+            const agentEntries = task.log.filter((e) => e.type === "agent" && e.character === char);
+            const theme = agentTheme[char] || agentTheme.mayor;
+            const agentName = char.charAt(0).toUpperCase() + char.slice(1);
+            return (
+              <div
+                key={char}
+                className="flex-1 flex flex-col min-h-0"
+                style={paneIdx < focusAgentChars.length - 1 ? { borderRight: "1px dashed var(--border)" } : {}}
+              >
+                {/* Pane content */}
+                <div className="flex-1 overflow-y-auto">
+                  <div style={{ maxWidth: 860, margin: "0 auto", padding: "28px 40px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                    {agentEntries.length === 0 ? (
+                      <div className="py-8 text-center">
+                        <p className="text-[14px] text-[var(--text-dim)] italic">No output yet.</p>
                       </div>
-                    </div>
+                    ) : (
+                      agentEntries.map((entry, i) => (
+                        <div key={entry.id} className={`flex gap-4 py-4 ${i < agentEntries.length - 1 ? "border-b border-[var(--border)]" : ""}`}>
+                          <div className="shrink-0 pt-1" style={{ imageRendering: "pixelated" }}>
+                            <PixelSprite character={char} size={24} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            {agentEntries.length > 1 && (
+                              <span className="text-[12px] text-[var(--text-dim)] uppercase tracking-wider block mb-2">Run {i + 1}</span>
+                            )}
+                            <div className="prose-detail text-[var(--text-mid)]">
+                              <ReactMarkdown>{entry.text}</ReactMarkdown>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
-                );
-              })}
-            </div>
-          )}
+                </div>
+              </div>
+            );
+          })}
         </div>
-        <div className="px-bar">
-          <div className={`px-bar-fill ${barClass} ${task.status === "running" ? "loading-bar" : ""}`} style={{ width: `${displayProgress}%` }} />
-        </div>
-        </div>
-      </div>
-
-      {/* Conversation + Crew Index */}
+      ) : (
+      /* ── Full log view ── */
       <div className="flex-1 flex min-h-0 bg-white/50 border-t border-[var(--border)]">
-        {/* Main conversation */}
         <div className="flex-1 overflow-y-auto" id="conversation-scroll">
-          <div className="w-full max-w-[1000px] mx-auto pl-16 pr-14 py-8 space-y-5">
+          <div style={{ maxWidth: 860, margin: '0 auto', padding: '40px 56px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
           {task.log.map((entry) => {
             // System dividers
             if (entry.type === "system" && entry.text.startsWith("---")) {
@@ -491,8 +550,8 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
             // System messages
             if (entry.type === "system") {
               return (
-                <div key={entry.id} className="pl-[4.5rem] pr-10 py-2">
-                  <p className="text-[13px] text-[var(--text-dim)] italic leading-relaxed">{entry.text}</p>
+                <div key={entry.id} className="py-2">
+                  <p className="text-[15px] text-[var(--text-dim)] italic leading-relaxed">{entry.text}</p>
                 </div>
               );
             }
@@ -501,11 +560,11 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
             if (entry.type === "user") {
               return (
                 <div key={entry.id} id={`entry-${entry.id}`} className="overflow-hidden border-2 border-[var(--accent)] my-5">
-                  <div className="pl-[4.5rem] pr-10 py-3 bg-[var(--accent)]">
+                  <div className="px-6 py-3 bg-[var(--accent)]">
                     <span className="text-[11px] text-white uppercase font-bold tracking-wider">Your Prompt</span>
                   </div>
-                  <div className="pl-[4.5rem] pr-12 py-5 bg-white border-t border-[var(--accent)]/25">
-                    <p className="text-[14px] leading-relaxed text-[var(--text)] pl-1">{entry.text}</p>
+                  <div className="px-6 py-5 bg-white border-t border-[var(--accent)]/25">
+                    <p className="text-[15px] leading-relaxed text-[var(--text)] pl-1">{entry.text}</p>
                   </div>
                 </div>
               );
@@ -514,8 +573,8 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
             // Result
             if (entry.type === "result") {
               return (
-                <div key={entry.id} className="pl-[4.5rem] pr-10 py-3">
-                  <p className="text-[14px] text-emerald-600 font-semibold leading-relaxed">{entry.text}</p>
+                <div key={entry.id} className="py-3">
+                  <p className="text-[15px] text-emerald-600 font-semibold leading-relaxed">{entry.text}</p>
                 </div>
               );
             }
@@ -531,7 +590,7 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
                 {/* Agent header — always visible, clickable */}
                 <button
                   onClick={() => setSelectedEntryId(isExpanded ? null : entry.id)}
-                  className="w-full flex items-center gap-3 pl-[4.5rem] pr-10 py-4 cursor-pointer transition-all"
+                  className="w-full flex items-center gap-3 px-6 py-4 cursor-pointer transition-all"
                   style={{ background: isExpanded ? theme.bg : theme.light }}
                 >
                   {entry.character && (
@@ -540,14 +599,14 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
                     </div>
                   )}
                   <div className="flex-1 text-left min-w-0">
-                    <span className={`font-semibold text-[13px] block ${isExpanded ? "text-white" : ""}`} style={!isExpanded ? { color: theme.text } : undefined}>
+                    <span className={`font-semibold text-[15px] block ${isExpanded ? "text-white" : ""}`} style={!isExpanded ? { color: theme.text } : undefined}>
                       {agentName}
                     </span>
                     {!isExpanded && (
-                      <p className="text-[12px] text-[var(--text-mid)] truncate mt-1">{summary}</p>
+                      <p className="text-[14px] text-[var(--text-mid)] truncate mt-1">{summary}</p>
                     )}
                     {isExpanded && (
-                      <span className="text-[11px] text-white/70">{theme.role}</span>
+                      <span className="text-[13px] text-white/70">{theme.role}</span>
                     )}
                   </div>
                   <span className={`text-[14px] shrink-0 ${isExpanded ? "text-white/40" : "text-[var(--text-dim)]"}`}>
@@ -557,7 +616,7 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
 
                 {/* Expanded content */}
                 {isExpanded && (
-                  <div className="pl-[4.5rem] pr-12 py-6 border-t border-[var(--border)]">
+                  <div className="px-6 py-6 border-t border-[var(--border)]">
                     <div className="prose-detail text-[var(--text-mid)]">
                       <ReactMarkdown>{entry.text}</ReactMarkdown>
                     </div>
@@ -573,17 +632,17 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
             const agentName = entry.agent.charAt(0).toUpperCase() + entry.agent.slice(1);
             return (
               <div key={`streaming-${entry.agent}`} className="overflow-hidden border-2 border-[var(--accent)]">
-                <div className="flex items-center gap-3 pl-[4.5rem] pr-10 py-4" style={{ background: theme.bg }}>
+                <div className="flex items-center gap-3 px-6 py-4" style={{ background: theme.bg }}>
                   <div className="p-1.5 bg-white/25" style={{ imageRendering: "pixelated" }}>
                     <PixelSprite character={entry.agent} size={32} />
                   </div>
                   <div>
-                    <span className="font-semibold text-[13px] text-white block uppercase">{agentName}</span>
-                    <span className="text-[11px] text-white/70">{theme.role}</span>
+                    <span className="font-semibold text-[15px] text-white block uppercase">{agentName}</span>
+                    <span className="text-[13px] text-white/70">{theme.role}</span>
                   </div>
                   <span className="cursor-blink ml-auto" />
                 </div>
-                <div className="pl-[4.5rem] pr-12 py-6 border-t border-[var(--border)]">
+                <div className="px-6 py-6 border-t border-[var(--border)]">
                   <div className="prose-detail text-[var(--text-mid)]">
                     <ReactMarkdown>{entry.text}</ReactMarkdown>
                   </div>
@@ -591,67 +650,11 @@ export default function TaskDetail({ task, streamingEntries, onFollowUp }: Props
               </div>
             );
           })}
-
           <div ref={bottomRef} />
         </div>
       </div>
-
-      {/* Crew Index (sticky TOC) */}
-      {task.log.some((e) => e.type === "agent") && (
-        <div className="w-[180px] shrink-0 border-l border-[var(--border)] bg-[var(--bg-panel)] overflow-y-auto">
-          <div className="sticky top-0 py-4 px-3">
-            <span className="text-[10px] text-[var(--text-dim)] uppercase tracking-wider block mb-3 px-2 font-bold">Index</span>
-            <div className="space-y-0.5">
-              {task.log.filter((e) => e.type === "agent" || e.type === "user").map((entry) => {
-                const isActive = entry.id === selectedEntryId;
-
-                if (entry.type === "user") {
-                  return (
-                    <button
-                      key={entry.id}
-                      onClick={() => {
-                        setSelectedEntryId(entry.id);
-                        document.getElementById(`entry-${entry.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-                      }}
-                      className={`w-full text-left px-2.5 py-1.5 text-[11px] transition-all cursor-pointer ${
-                        isActive ? "bg-[var(--accent-soft)] text-[var(--accent)] font-semibold" : "text-[var(--text-dim)] hover:bg-[var(--bg-card)]"
-                      }`}
-                    >
-                      You
-                    </button>
-                  );
-                }
-
-                const theme = entry.character ? (agentTheme[entry.character] || agentTheme.mayor) : agentTheme.mayor;
-                return (
-                  <button
-                    key={entry.id}
-                    onClick={() => {
-                      setSelectedEntryId(isActive ? null : entry.id);
-                      document.getElementById(`entry-${entry.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-                    }}
-                    className={`w-full text-left px-2.5 py-1.5 flex items-center gap-2 transition-all cursor-pointer ${
-                      isActive ? "bg-[var(--bg-card)]" : "hover:bg-[var(--bg-card)]"
-                    }`}
-                  >
-                    {entry.character && (
-                      <div style={{ imageRendering: "pixelated" }}>
-                        <PixelSprite character={entry.character} size={12} />
-                      </div>
-                    )}
-                    <span className={`text-[11px] truncate ${isActive ? "font-semibold" : ""}`} style={{ color: isActive ? theme.bg : "var(--text-mid)" }}>
-                      {entry.character ? entry.character.charAt(0).toUpperCase() + entry.character.slice(1) : "Agent"}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
       </div>
-
-      {/* Follow-up input - REMOVED */}
+      )}
 
     </div>
   );

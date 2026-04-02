@@ -26,6 +26,8 @@ export default function Home() {
   const [agents, setAgents] = useState<Agent[]>(initialAgents);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedAgentChars, setSelectedAgentChars] = useState<CharacterName[]>([]);
+  const [pinnedCrew, setPinnedCrew] = useState<CharacterName[]>([]);
   // Track multiple concurrent streaming agents (keyed by agent name)
   const [streamingEntries, setStreamingEntries] = useState<Record<string, StreamingEntry>>({});
 
@@ -394,7 +396,8 @@ export default function Home() {
   }, [runSingleStep, setCurrentStep]);
 
   const handleNewTask = useCallback((message: string) => {
-    const { task, updatedAgents } = createTask(message, agents);
+    const { task, updatedAgents } = createTask(message, agents, pinnedCrew.length > 0 ? pinnedCrew : undefined);
+    setPinnedCrew([]);
 
     setAgents(updatedAgents);
     setTasks((prev) => [task, ...prev]);
@@ -475,69 +478,38 @@ export default function Home() {
     <>
       <div className="bg-pixel" />
 
-      <div className="h-screen flex flex-col gap-2" style={{ padding: '12px' }}>
-        <div className="flex-1 grid min-h-0 gap-4" style={{ gridTemplateColumns: "16rem 1fr", gridTemplateRows: "auto 1fr" }}>
+      <div className="h-screen flex flex-col gap-1" style={{ padding: '6px 12px 10px 12px' }}>
+        <div className="flex-1 grid min-h-0" style={{ gridTemplateColumns: "17rem 1fr", gridTemplateRows: "auto 1fr", columnGap: '16px', rowGap: '6px' }}>
           {/* Top-left: Logo */}
-          <div className="flex items-start">
+          <div className="flex items-center" style={{ paddingTop: '2px' }}>
             <AgentSidebar />
           </div>
 
-          {/* Top-right: Crew team section */}
-          <div className="bg-[var(--bg-card)] border border-[var(--border)] px-5 py-4">
-            <div className="flex items-center gap-5 flex-wrap">
-              {agents.map((agent) => {
-                const isWorking = agent.state === "working";
-                const colors = crewColors[agent.character] || crewColors.mayor;
-                return (
-                  <div
-                    key={agent.id}
-                    className="flex items-center gap-2 transition-all duration-200"
-                  >
-                    <div
-                      className={`rounded-lg p-1 ${isWorking ? "shadow-md" : ""}`}
-                      style={{
-                        background: isWorking ? colors.light : "var(--bg)",
-                        boxShadow: isWorking ? `0 0 10px ${colors.bg}30` : undefined,
-                        imageRendering: "pixelated",
-                      }}
-                    >
-                      <PixelSprite character={agent.character} size={28} />
-                    </div>
-                    <div>
-                      <span className="text-[11px] text-[var(--text)] font-medium block leading-tight">{agent.name}</span>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <div
-                          className={`w-[4px] h-[4px] rounded-full ${isWorking ? "blink" : ""}`}
-                          style={{ background: isWorking ? colors.bg : "var(--clr-idle)" }}
-                        />
-                        <span className={`text-[9px] uppercase tracking-wider font-semibold ${isWorking ? "" : "text-[var(--text-dim)]"}`}
-                          style={isWorking ? { color: colors.bg } : undefined}
-                        >
-                          {agent.state === "working" ? "Active" : agent.state === "done" ? "Done" : agent.state === "stuck" ? "Error" : "Idle"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          {/* Top-right: empty */}
+          <div />
 
           {/* Bottom-left: Task list */}
           <div className="flex flex-col min-h-0">
-            <div className="mb-3 px-2">
+            <div className="mb-2 px-2" style={{ paddingTop: '2px' }}>
               <div className="flex items-center justify-between">
-                <span className="font-bold text-[11px] text-[var(--text-mid)] uppercase tracking-widest">Tasks</span>
-                <span className="text-[11px] text-[var(--text-dim)] font-medium">{tasks.length}</span>
+                <span className="font-bold text-[13px] text-[var(--text-mid)] uppercase tracking-widest">Tasks</span>
+                <span className="text-[13px] text-[var(--text-dim)] font-medium">{tasks.length}</span>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto space-y-1">
+            <div className="flex-1 overflow-y-auto pr-1">
               {tasks.map((task) => (
                 <TaskCard
                   key={task.id}
                   task={task}
                   isSelected={task.id === selectedTaskId}
-                  onClick={() => setSelectedTaskId(task.id)}
+                  onClick={() => { setSelectedTaskId(task.id); setSelectedAgentChars([]); }}
+                  selectedAgentChars={task.id === selectedTaskId ? selectedAgentChars : []}
+                  onAgentClick={(char) => {
+                    setSelectedTaskId(task.id);
+                    setSelectedAgentChars((prev) =>
+                      prev.includes(char) ? prev : [...prev, char]
+                    );
+                  }}
                 />
               ))}
             </div>
@@ -552,6 +524,16 @@ export default function Home() {
                     task={selectedTask}
                     streamingEntries={streamingEntries}
                     onFollowUp={handleFollowUp}
+                    focusAgentChars={selectedAgentChars}
+                    onAgentFocus={(char) => {
+                      if (char === null) {
+                        setSelectedAgentChars([]);
+                      } else {
+                        setSelectedAgentChars((prev) =>
+                          prev.includes(char) ? prev.filter((c) => c !== char) : [...prev, char]
+                        );
+                      }
+                    }}
                   />
                 </div>
               ) : (
@@ -588,18 +570,46 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Bottom prompt — same rail as chat; no full-width white panel (show page bg) */}
-        <div className="grid shrink-0 gap-4 min-w-0" style={{ gridTemplateColumns: "16rem 1fr" }}>
+        {/* Bottom prompt */}
+        <div className="grid shrink-0 min-w-0" style={{ gridTemplateColumns: "17rem 1fr", gap: '0 16px' }}>
           <div className="min-w-0" aria-hidden />
           <div className="min-w-0">
-            <div className="w-full max-w-[1000px] mx-auto pl-16 pr-14 py-1">
-              <div className="overflow-hidden border-2 border-[var(--accent)]">
-                <div className="pl-[4.5rem] pr-10 py-3 bg-[var(--accent)]">
-                  <span className="text-[11px] text-white uppercase font-bold tracking-wider">Your Prompt</span>
+            <div className="overflow-hidden border-2 border-[#5b6cf0] border-t-0">
+              <div className="px-5 py-2 bg-[#5b6cf0] flex items-center justify-between">
+                <span className="text-[11px] text-white uppercase font-bold tracking-wider">Your Prompt</span>
+                <div className="flex items-center">
+                  {agents.filter((a) => a.character !== "monitor").map((agent, i) => {
+                    const isCore = agent.character === "mayor" || agent.character === "planner";
+                    const isPinned = pinnedCrew.includes(agent.character);
+                    return (
+                      <span key={agent.id} className="flex items-center">
+                        {i > 0 && <span style={{ color: "rgba(255,255,255,0.4)", margin: "0 6px" }}>|</span>}
+                        <button
+                          onClick={() => {
+                            if (isCore) return;
+                            setPinnedCrew((prev) =>
+                              prev.includes(agent.character)
+                                ? prev.filter((c) => c !== agent.character)
+                                : [...prev, agent.character]
+                            );
+                          }}
+                          className={`text-[11px] uppercase tracking-wider transition-all duration-150 font-bold cursor-pointer ${
+                            isCore
+                              ? "text-white cursor-default"
+                              : isPinned
+                              ? "text-white underline underline-offset-2"
+                              : "text-white hover:opacity-70"
+                          }`}
+                        >
+                          {agent.name}
+                        </button>
+                      </span>
+                    );
+                  })}
                 </div>
-                <div className="bg-white border-t border-[var(--accent)]/25">
-                  <CommandInput onSubmit={handleNewTask} disabled={false} variant="rail" />
-                </div>
+              </div>
+              <div className="bg-white border-t border-[#5b6cf0]/25">
+                <CommandInput onSubmit={handleNewTask} disabled={false} variant="rail" />
               </div>
             </div>
           </div>

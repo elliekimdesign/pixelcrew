@@ -43,10 +43,24 @@ function pickAgents(message: string, allAgents: Agent[]): CharacterName[] {
   return team;
 }
 
-export function createTask(message: string, agents: Agent[]): { task: Task; updatedAgents: Agent[] } {
+export function createTask(message: string, agents: Agent[], forcedAgents?: CharacterName[]): { task: Task; updatedAgents: Agent[] } {
   taskCounter++;
   const id = `task-${taskCounter}-${Date.now()}`;
-  const assigned = pickAgents(message, agents);
+  const idle = agents.filter((a) => a.state === "idle").map((a) => a.character);
+
+  let assigned: CharacterName[];
+  if (forcedAgents && forcedAgents.length > 0) {
+    // Always include mayor + planner; add forced agents that are idle
+    const base: CharacterName[] = [];
+    if (idle.includes("mayor")) base.push("mayor");
+    if (idle.includes("planner")) base.push("planner");
+    for (const c of forcedAgents) {
+      if (idle.includes(c) && !base.includes(c)) base.push(c);
+    }
+    assigned = base.length > 0 ? base : pickAgents(message, agents);
+  } else {
+    assigned = pickAgents(message, agents);
+  }
 
   const firstLog: LogEntry = {
     id: `log-${Date.now()}-0`,

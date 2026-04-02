@@ -119,7 +119,7 @@ body {
 
 /* ── Prose (markdown detail view) ── */
 .prose-detail {
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.7;
   max-width: 70ch;
   padding-left: 1rem;
